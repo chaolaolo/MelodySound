@@ -1,0 +1,164 @@
+package com.example.melodysound.ui.home
+
+import android.util.Log
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.melodysound.data.model.AlbumFull
+import com.example.melodysound.data.repository.SpotifyRepository
+import com.example.melodysound.data.repository.Result
+import com.example.melodysound.data.model.AlbumItem
+import com.example.melodysound.data.model.Artist
+import com.example.melodysound.data.model.Track
+import com.example.melodysound.data.model.TrackItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
+
+    private val _newReleases = MutableStateFlow<List<AlbumItem>>(emptyList())
+    val newReleases: StateFlow<List<AlbumItem>> = _newReleases.asStateFlow()
+    private val _topTracks = MutableStateFlow<List<TrackItem>>(emptyList())
+    val topTracks: StateFlow<List<TrackItem>> = _topTracks.asStateFlow()
+    private val _topArtists = MutableStateFlow<List<Artist>>(emptyList())
+    val topArtists: StateFlow<List<Artist>> = _topArtists.asStateFlow()
+    private val _albumDetails = MutableStateFlow<AlbumFull?>(null)
+    val albumDetails: StateFlow<AlbumFull?> = _albumDetails.asStateFlow()
+    private val _artistDetails = MutableStateFlow<Artist?>(null)
+    val artistDetails: StateFlow<Artist?> = _artistDetails.asStateFlow()
+    private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
+    val artistDetailsForAlbum: StateFlow<Artist?> = _artistDetailsForAlbum.asStateFlow()
+
+
+    // Trạng thái loading
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    // Trạng thái lỗi
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    //    loadNewReleases
+    fun loadNewReleases(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null // Xóa lỗi cũ
+
+            when (val result = repository.getNewReleases(accessToken)) {
+                is Result.Success -> {
+                    // Cập nhật StateFlow với dữ liệu mới
+                    _newReleases.value = result.data.albums.items
+                }
+
+                is Result.Error -> {
+                    // Cập nhật StateFlow với thông báo lỗi
+                    _errorMessage.value = result.message
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    //    loadUserTopTracks
+    fun loadUserTopTracks(accessToken: String) {
+        viewModelScope.launch {
+            // Cập nhật trạng thái loading
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            when (val result = repository.getUserTopTracks(accessToken)) {
+                is Result.Success -> {
+                    _topTracks.value = result.data.items
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = result.message
+                }
+            }
+            // Kết thúc loading
+            _isLoading.value = false
+        }
+    }
+
+    //    loadUserTopArtists
+    fun loadUserTopArtists(accessToken: String) {
+        viewModelScope.launch {
+            // Cập nhật trạng thái loading
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            when (val result = repository.getUserTopArtists(accessToken)) {
+                is Result.Success -> {
+                    _topArtists.value = result.data.items
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = result.message
+                }
+            }
+            // Kết thúc loading
+            _isLoading.value = false
+        }
+    }
+
+    // Thêm phương thức mới để tải chi tiết album
+    fun loadAlbumDetails(accessToken: String, albumId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _albumDetails.value = null
+            _artistDetailsForAlbum.value = null
+
+            when (val result = repository.getAlbum(accessToken, albumId)) {
+                is Result.Success -> {
+                    _albumDetails.value = result.data
+                    result.data.artists.firstOrNull()?.id?.let { artistId ->
+                        loadArtistDetailsForAlbum(accessToken, artistId)
+                    }
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load album details: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    private fun loadArtistDetailsForAlbum(accessToken: String, artistId: String) {
+        viewModelScope.launch {
+            when (val result = repository.getArtist(accessToken, artistId)) {
+                is Result.Success -> {
+                    _artistDetailsForAlbum.value = result.data
+                }
+                is Result.Error -> {
+                    Log.e("HomeViewModel", "Failed to load artist details for album: ${result.message}")
+                    // Không cần hiện toast lỗi ra màn hình vì đây là dữ liệu phụ
+                }
+            }
+        }
+    }
+
+    // Thêm phương thức mới để tải chi tiết artist
+    fun loadArtistDetails(accessToken: String, artistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _artistDetails.value = null // Xóa dữ liệu cũ
+
+            when (val result = repository.getArtist(accessToken, artistId)) {
+                is Result.Success -> {
+                    _artistDetails.value = result.data
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load artist details: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+
+}
