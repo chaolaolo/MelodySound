@@ -1,7 +1,6 @@
 package com.example.melodysound.ui.home.fragments.home
 
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +13,7 @@ import com.bumptech.glide.Glide
 import com.example.melodysound.R
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.model.Artist
+import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.repository.SpotifyRepository
 import com.example.melodysound.databinding.FragmentAlbumDetailBinding
 import com.example.melodysound.ui.common.AuthTokenManager
@@ -50,24 +50,39 @@ class AlbumDetailFragment : Fragment() {
         }
 
         val accessToken = AuthTokenManager.getAccessToken(requireContext())
-        val albumId = arguments?.getString("album_id") ?: ""
+        val id = arguments?.getString("id") ?: ""
+        val type = arguments?.getString("type") ?: ""
         albumTrackAdapter = AlbumTrackAdapter()
-        binding.rcAlbumTrack.apply {
-            layoutManager = LinearLayoutManager(context)
-            adapter = albumTrackAdapter
-            isNestedScrollingEnabled = false
+
+
+        if (accessToken == null || id.isEmpty() || type.isEmpty()) {
+            Toast.makeText(
+                requireContext(),
+                "Token, ID hoặc loại dữ liệu không hợp lệ",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
         }
 
+        // Dựa vào type để gọi API tương ứng
+        when (type) {
+            "album" -> {
+                viewModel.loadAlbumDetails(accessToken, id)
+                binding.rcAlbumTrack.apply {
+                    layoutManager = LinearLayoutManager(context)
+                    adapter = albumTrackAdapter
+                    isNestedScrollingEnabled = false
+                }
+                binding.oneTrackLayout.visibility = View.GONE
+            }
 
-        if (accessToken != null && albumId.isNotEmpty()) {
-            Log.d("AlbumDetailFragment", "Album ID: $albumId")
-            // Gọi phương thức để lấy dữ liệu với accessToken đã lấy được
-            viewModel.loadAlbumDetails(accessToken, albumId)
-        } else {
-            // Xử lý trường hợp không có token hoặc albumId không hợp lệ
-            Toast.makeText(requireContext(), "Token hoặc Album ID không hợp lệ", Toast.LENGTH_SHORT)
-                .show()
-            // Có thể chuyển hướng người dùng đến màn hình đăng nhập
+            "track" -> {
+                viewModel.loadTrackDetails(accessToken, id)
+                binding.rcAlbumTrack.visibility = View.GONE
+                binding.oneTrackLayout.visibility = View.VISIBLE
+            }
+
+            else -> null
         }
 
         setupObservers()
@@ -82,6 +97,13 @@ class AlbumDetailFragment : Fragment() {
                         album?.let {
                             updateUIWithAlbumData(it)
                             albumTrackAdapter.submitList(it.tracks.items)
+                        }
+                    }
+                }
+                launch {
+                    viewModel.trackDetails.collect { track ->
+                        track?.let {
+                            updateUIWithTrackData(it)
                         }
                     }
                 }
@@ -122,6 +144,39 @@ class AlbumDetailFragment : Fragment() {
 
 
         val imageUrl = album.images.firstOrNull()?.url
+        if (imageUrl != null) {
+            Glide.with(this).load(imageUrl).into(binding.imgAlbumThumbnail)
+            Glide.with(this).load(imageUrl).into(binding.imgMiniAlbumThumbnail)
+        }
+
+    }
+
+    private fun updateUIWithTrackData(track: TrackItem) {
+        binding.txtAlbumName.text = track.name
+        binding.txtArtistName.text = track.artists.joinToString(", ") { it.name }
+        binding.txtAlbumType.text = track.album.albumType.replaceFirstChar { it.uppercase() }
+        binding.txtAlbumReleaseTime.text = track.album.releaseDate.split(" - ").firstOrNull()
+        binding.txtTotalTracks.text = buildString {
+            append("1 bài hát")
+        }
+        val totalSeconds = track.durationMs / 1000
+        val hours = totalSeconds / 3600
+        val remainingMinutes = (totalSeconds % 3600) / 60
+        val remainingSeconds = totalSeconds % 60
+
+        val duration = if (hours > 0) {
+            "${hours} giờ ${remainingMinutes} phút ${remainingSeconds} giây"
+        } else if (remainingMinutes > 0) {
+            "${remainingMinutes} phút ${remainingSeconds} giây"
+        } else {
+            "${remainingSeconds} giây"
+        }
+        binding.txtTotalTime.text = duration
+        binding.txtTrackName.text = track.name
+        binding.txtArtistsName.text = track.artists.joinToString(", ") { it.name }
+
+
+        val imageUrl = track.album.images.firstOrNull()?.url
         if (imageUrl != null) {
             Glide.with(this).load(imageUrl).into(binding.imgAlbumThumbnail)
             Glide.with(this).load(imageUrl).into(binding.imgMiniAlbumThumbnail)

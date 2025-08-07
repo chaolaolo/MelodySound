@@ -72,11 +72,9 @@ class MusicFragment : Fragment() {
 
     private fun setupRecyclerView() {
         newReleaseAdapter = NewReleaseAdapter { album ->
-            Toast.makeText(context, "Clicked on Top Track: ${album.name}", Toast.LENGTH_SHORT)
-                .show()
-
             val bundle = Bundle().apply {
-                putString("album_id", album.id)
+                putString("id", album.id)
+                putString("type", "album")
             }
 
             // Lấy NavController từ parent fragment (HomeFragment)
@@ -85,8 +83,14 @@ class MusicFragment : Fragment() {
         }
         popularSongsAdapter =
             PopularSongsAdapter { track ->
-                Toast.makeText(context, "Clicked on Top Track: ${track.name}", Toast.LENGTH_SHORT)
-                    .show()
+                val bundle = Bundle().apply {
+                    putString("id", track.id)
+                    putString("type", "track")
+                }
+
+                // Lấy NavController từ parent fragment (HomeFragment)
+                val navController = parentFragment?.findNavController()
+                navController?.navigate(R.id.albumDetailFragment, bundle)
             }
 
         popularArtistAdapter =

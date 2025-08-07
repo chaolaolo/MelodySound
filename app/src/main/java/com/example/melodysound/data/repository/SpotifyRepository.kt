@@ -8,6 +8,7 @@ import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingTracks
+import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.remote.SpotifyApiService
 
 class SpotifyRepository(
@@ -110,7 +111,7 @@ class SpotifyRepository(
     }
 
 
-    // Thêm phương thức mới để lấy album theo ID
+    // getAlbum theo ID
     suspend fun getAlbum(
         accessToken: String,
         id: String
@@ -134,7 +135,7 @@ class SpotifyRepository(
         }
     }
 
-    // Thêm phương thức mới để lấy artist theo ID
+    // getArtist theo ID
     suspend fun getArtist(
         accessToken: String,
         id: String
@@ -158,6 +159,29 @@ class SpotifyRepository(
         }
     }
 
+    //    getTrack theo ID
+    suspend fun getTrack(
+        accessToken: String,
+        id: String
+    ): Result<TrackItem> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.geTrack(
+                authorization = authorizationHeader,
+                id = id
+            )
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for track details")
+            } else {
+                Result.Error("API call failed for track details with code: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting track: ${e.message}")
+        }
+    }
 
 }
 

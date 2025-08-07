@@ -5,6 +5,8 @@ import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingTracks
+import com.example.melodysound.data.model.Track
+import com.example.melodysound.data.model.TrackItem
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -51,4 +53,10 @@ interface SpotifyApiService {
         @Path("id") id: String
     ): Response<Artist>
 
+
+    @GET("tracks/{id}")
+    suspend fun geTrack(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: String
+    ): Response<TrackItem>
 }

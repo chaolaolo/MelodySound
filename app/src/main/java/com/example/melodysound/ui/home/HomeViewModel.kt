@@ -25,6 +25,8 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
     val topArtists: StateFlow<List<Artist>> = _topArtists.asStateFlow()
     private val _albumDetails = MutableStateFlow<AlbumFull?>(null)
     val albumDetails: StateFlow<AlbumFull?> = _albumDetails.asStateFlow()
+    private val _trackDetails = MutableStateFlow<TrackItem?>(null)
+    val trackDetails: StateFlow<TrackItem?> = _trackDetails.asStateFlow()
     private val _artistDetails = MutableStateFlow<Artist?>(null)
     val artistDetails: StateFlow<Artist?> = _artistDetails.asStateFlow()
     private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
@@ -132,8 +134,12 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
                 is Result.Success -> {
                     _artistDetailsForAlbum.value = result.data
                 }
+
                 is Result.Error -> {
-                    Log.e("HomeViewModel", "Failed to load artist details for album: ${result.message}")
+                    Log.e(
+                        "HomeViewModel",
+                        "Failed to load artist details for album: ${result.message}"
+                    )
                     // Không cần hiện toast lỗi ra màn hình vì đây là dữ liệu phụ
                 }
             }
@@ -154,6 +160,28 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
 
                 is Result.Error -> {
                     _errorMessage.value = "Failed to load artist details: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadTrackDetails(accessToken: String, trackId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _trackDetails.value = null
+
+            when (val result = repository.getTrack(accessToken, trackId)) {
+                is Result.Success -> {
+                    _trackDetails.value = result.data
+                    result.data.artists.firstOrNull()?.id?.let { artistId ->
+                        loadArtistDetailsForAlbum(accessToken, artistId)
+                    }
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load track details: ${result.message}"
                 }
             }
             _isLoading.value = false
