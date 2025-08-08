@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.melodysound.R
@@ -111,6 +112,7 @@ class AlbumDetailFragment : Fragment() {
                     viewModel.artistDetailsForAlbum.collect { artist ->
                         artist?.let {
                             updateArtistAvatar(it)
+                            binding.txtArtistName
                         }
                     }
                 }
@@ -142,6 +144,18 @@ class AlbumDetailFragment : Fragment() {
         }
         binding.txtTotalTime.text = calculateTotalDuration(album)
 
+        binding.txtArtistName.setOnClickListener {
+            val bundle = Bundle().apply {
+                putString("id", album.artists.firstOrNull()?.id)
+            }
+            findNavController().navigate(R.id.artistDetailFragment, bundle)
+        }
+        binding.imgArtistAvatar.setOnClickListener {
+            val bundle = Bundle().apply {
+                putString("id", album.artists.firstOrNull()?.id)
+            }
+            findNavController().navigate(R.id.artistDetailFragment, bundle)
+        }
 
         val imageUrl = album.images.firstOrNull()?.url
         if (imageUrl != null) {

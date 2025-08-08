@@ -1,6 +1,7 @@
 package com.example.melodysound.ui.home.fragments.home
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -95,11 +96,11 @@ class MusicFragment : Fragment() {
 
         popularArtistAdapter =
             PopularArtistAdapter { artist ->
-                Toast.makeText(
-                    context,
-                    "Clicked on Top Artist: ${artist.name}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                val bundle = Bundle().apply {
+                    putString("id", artist.id)
+                }
+                val navController = parentFragment?.findNavController()
+                navController?.navigate(R.id.artistDetailFragment, bundle)
             }
 
 

@@ -38,4 +38,13 @@
             android:name="album_id"
             android:defaultValue="" />
     </fragment>
+    <fragment
+        android:id="@+id/artistDetailFragment"
+        android:name="com.example.melodysound.ui.home.fragments.home.ArtistDetailFragment"
+        android:label="Artist Detail"
+        tools:layout="@layout/fragment_artist_detail">
+        <argument
+            android:name="artist_id"
+            android:defaultValue="" />
+    </fragment>
 </navigation>

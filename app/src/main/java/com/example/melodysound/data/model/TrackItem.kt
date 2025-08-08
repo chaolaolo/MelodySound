@@ -6,7 +6,7 @@ data class TrackItem(
     @SerializedName("album")
     val album: AlbumItem,
     @SerializedName("artists")
-    val artists: List<Artist>, // Có thể tái sử dụng Artist data class đã tạo
+    val artists: List<Artist>,
     @SerializedName("available_markets")
     val availableMarkets: List<String>,
     @SerializedName("disc_number")
@@ -16,17 +16,17 @@ data class TrackItem(
     @SerializedName("explicit")
     val explicit: Boolean,
     @SerializedName("external_urls")
-    val externalUrls: ExternalUrls, // Tái sử dụng ExternalUrls
+    val externalUrls: ExternalUrls,
     @SerializedName("href")
     val href: String,
     @SerializedName("id")
     val id: String,
     @SerializedName("linked_from")
-    val linkedFrom: LinkedFrom?, // Có thể null
+    val linkedFrom: LinkedFrom?,
     @SerializedName("name")
     val name: String,
     @SerializedName("preview_url")
-    val previewUrl: String?, // Có thể null
+    val previewUrl: String?,
     @SerializedName("track_number")
     val trackNumber: Int,
     @SerializedName("type")
@@ -36,5 +36,7 @@ data class TrackItem(
     @SerializedName("is_local")
     val isLocal: Boolean,
     @SerializedName("restrictions")
-    val restrictions: Restrictions? // Có thể null
+    val restrictions: Restrictions?,
+    @SerializedName("popularity")
+    val popularity: Int,
 )

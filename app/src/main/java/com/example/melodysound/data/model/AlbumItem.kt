@@ -28,6 +28,8 @@ data class AlbumItem(
     @SerializedName("type")
     val type: String,
     @SerializedName("uri")
-    val uri: String
+    val uri: String,
+    @SerializedName("album_group") // Thêm trường mới
+    val albumGroup: String
 )
 

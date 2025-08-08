@@ -29,6 +29,12 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
     val trackDetails: StateFlow<TrackItem?> = _trackDetails.asStateFlow()
     private val _artistDetails = MutableStateFlow<Artist?>(null)
     val artistDetails: StateFlow<Artist?> = _artistDetails.asStateFlow()
+    private val _artistTopTracks = MutableStateFlow<List<Track>>(emptyList())
+    val artistTopTracks: StateFlow<List<Track>> = _artistTopTracks.asStateFlow()
+    private val _artistAlbums = MutableStateFlow<List<AlbumItem>>(emptyList())
+    val artistAlbums: StateFlow<List<AlbumItem>> = _artistAlbums.asStateFlow()
+
+
     private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
     val artistDetailsForAlbum: StateFlow<Artist?> = _artistDetailsForAlbum.asStateFlow()
 
@@ -146,26 +152,6 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
         }
     }
 
-    // Thêm phương thức mới để tải chi tiết artist
-    fun loadArtistDetails(accessToken: String, artistId: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _errorMessage.value = null
-            _artistDetails.value = null // Xóa dữ liệu cũ
-
-            when (val result = repository.getArtist(accessToken, artistId)) {
-                is Result.Success -> {
-                    _artistDetails.value = result.data
-                }
-
-                is Result.Error -> {
-                    _errorMessage.value = "Failed to load artist details: ${result.message}"
-                }
-            }
-            _isLoading.value = false
-        }
-    }
-
     fun loadTrackDetails(accessToken: String, trackId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -188,5 +174,67 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
         }
     }
 
+    // Thêm phương thức mới để tải chi tiết artist
+    fun loadArtistDetails(accessToken: String, artistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _artistDetails.value = null // Xóa dữ liệu cũ
+
+            when (val result = repository.getArtist(accessToken, artistId)) {
+                is Result.Success -> {
+                    _artistDetails.value = result.data
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load artist details: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadArtistTopTracks(accessToken: String, artistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _artistTopTracks.value = emptyList()
+
+            when (val result = repository.getArtistTopTracks(accessToken, artistId)) {
+                is Result.Success -> {
+                    _artistTopTracks.value = result.data.tracks
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value =
+                        "Failed to load artist's top tracks: ${result.message}"
+                    _artistTopTracks.value = emptyList()
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadArtistAlbums(accessToken: String, artistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _artistAlbums.value = emptyList()
+
+            when (val result = repository.getArtistAlbums(accessToken, artistId)) {
+                is Result.Success -> {
+//                    _artistAlbums.value = result.data.albums.items
+                    _artistAlbums.value = result.data.items ?: emptyList()
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value =
+                        "Failed to load artist's albums: ${result.message}"
+                    _artistAlbums.value = emptyList()
+                }
+            }
+            _isLoading.value = false
+        }
+    }
 
 }

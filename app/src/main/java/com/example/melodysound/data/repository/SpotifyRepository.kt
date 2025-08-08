@@ -5,9 +5,12 @@ import com.example.melodysound.data.remote.RetrofitInstance
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.example.melodysound.data.model.Artist
+import com.example.melodysound.data.model.ArtistTopTracksResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
+import com.example.melodysound.data.model.PagingNewRelease
 import com.example.melodysound.data.model.PagingTracks
+import com.example.melodysound.data.model.TopTracksResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.remote.SpotifyApiService
 
@@ -19,7 +22,7 @@ class SpotifyRepository(
         country: String? = null,
         limit: Int = 20,
         offset: Int = 0
-    ): Result<PagingAlbums> {
+    ): Result<PagingNewRelease> {
         return try {
             // Định dạng token đúng chuẩn
             val authorizationHeader = "Bearer $accessToken"
@@ -180,6 +183,45 @@ class SpotifyRepository(
             }
         } catch (e: Exception) {
             Result.Error("An error occurred while getting track: ${e.message}")
+        }
+    }
+
+    suspend fun getArtistTopTracks(accessToken: String, id: String): Result<ArtistTopTracksResponse> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.geArtistTopTracks(
+                authorization = authorizationHeader,
+                id = id
+            )
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for artist details")
+            } else {
+                Result.Error("API call failed for artist details with code: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred: ${e.message}")
+        }
+    }
+
+    suspend fun getArtistAlbums(accessToken: String, id: String): Result<PagingAlbums> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getArtistAlbums(
+                authorization = authorizationHeader,
+                id = id
+            )
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for artist details")
+            } else {
+                Result.Error("API call failed for artist details with code: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred: ${e.message}")
         }
     }
 

@@ -76,8 +76,11 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0")
 
     implementation("com.spotify.android:auth:2.1.2")
+//    implementation("com.spotify.android:app-remote-lib:0.7.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.2")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.9.2")
-//    implementation("androidx.browser:browser:1.9.0")
     implementation ("com.google.dagger:hilt-android:2.57")
+
+    // ExoPlayer
+    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
 }

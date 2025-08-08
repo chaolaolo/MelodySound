@@ -11,11 +11,14 @@ import com.example.melodysound.data.model.Song
 import com.example.melodysound.databinding.ItemNewReleaseBinding
 
 class NewReleaseAdapter(
+    private val albums: MutableList<AlbumItem> = mutableListOf(),
     private val onItemClick: (AlbumItem) -> Unit
 ) :
     RecyclerView.Adapter<NewReleaseAdapter.NewReleaseViewHolder>() {
 
     fun submitList(list: List<AlbumItem>) {
+        albums.clear()
+        albums.addAll(list)
         newReleases = list
         notifyDataSetChanged()
     }

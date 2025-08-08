@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spotify Web Playback SDK</title>
+</head>
+<body>
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script>
+    window.onSpotifyWebPlaybackSDKReady = () => {
+        const token = localStorage.getItem('spotify_token');
+
+        if (!token) {
+            // Trả về lỗi nếu không có token
+            Android.onPlaybackError("Token is not available");
+            return;
+        }
+
+        const player = new Spotify.Player({
+            name: 'MelodySound Player',
+            getOAuthToken: cb => { cb(token); },
+            volume: 0.5
+        });
+
+        // Kết nối trình phát
+        player.connect();
+
+        // Các sự kiện của trình phát
+        player.addListener('ready', ({ device_id }) => {
+            Android.onPlaybackReady(device_id);
+        });
+
+        player.addListener('not_ready', ({ device_id }) => {
+            Android.onPlaybackError("Device not ready");
+        });
+
+        player.addListener('player_state_changed', state => {
+            if (!state) return;
+            const track = state.track_window.current_track;
+            const paused = state.paused;
+            const position = state.position;
+            const duration = state.duration;
+
+            Android.onPlayerStateChanged(JSON.stringify({
+                trackId: track.id,
+                trackName: track.name,
+                artistName: track.artists.map(a => a.name).join(', '),
+                albumImageUrl: track.album.images[0].url,
+                paused: paused,
+                position: position,
+                duration: duration
+            }));
+        });
+
+        player.addListener('initialization_error', ({ message }) => {
+            Android.onPlaybackError(`Initialization Error: ${message}`);
+        });
+        player.addListener('authentication_error', ({ message }) => {
+            Android.onPlaybackError(`Authentication Error: ${message}`);
+        });
+        player.addListener('account_error', ({ message }) => {
+            Android.onPlaybackError(`Account Error: ${message}`);
+        });
+
+        // Các hàm để Android gọi
+        window.playTrack = (uri, deviceId) => {
+            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    uris: [uri]
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+            });
+        };
+
+        window.resume = (deviceId) => {
+            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+        };
+
+        window.pause = (deviceId) => {
+            fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+        };
+    };
+</script>
+</body>
+</html>

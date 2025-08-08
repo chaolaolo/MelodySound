@@ -2,19 +2,19 @@ package com.example.melodysound.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class PagingAlbums(
+data class TopTracksResponse(
     @SerializedName("href")
-    val href: String?,
-    @SerializedName("items")
-    val items: List<AlbumItem>, // Sửa lại: list<AlbumItem> có thể null
+    val href: String,
     @SerializedName("limit")
-    val limit: Int?,
+    val limit: Int,
     @SerializedName("next")
     val next: String?,
     @SerializedName("offset")
-    val offset: Int?,
+    val offset: Int,
     @SerializedName("previous")
     val previous: String?,
     @SerializedName("total")
-    val total: Int?
+    val total: Int,
+    @SerializedName("items")
+    val items: List<TrackItem>
 )

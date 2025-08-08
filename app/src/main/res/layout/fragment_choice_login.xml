@@ -51,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:background="@drawable/cicler_white_outline"
+            android:background="@drawable/circle_white_outline"
             android:drawableLeft="@drawable/spotify_logo"
             android:paddingVertical="10dp"
             android:text="Đăng nhập bằng tài khoản Spotify"
