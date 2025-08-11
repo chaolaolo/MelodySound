@@ -153,11 +153,6 @@ class AuthActivity : AppCompatActivity(), AuthNavigator {
         finish()
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
     private fun handleIntent(intent: Intent?) {
         Log.d("AuthActivity", "Handle intent: ${intent?.data}")
         if (intent?.action == Intent.ACTION_VIEW) {
@@ -167,6 +162,58 @@ class AuthActivity : AppCompatActivity(), AuthNavigator {
                 handleSpotifyAuthResponse(response)
             }
         }
+    }
+
+    // Thêm hàm này vào trong AuthActivity
+    private fun refreshAccessToken() {
+        val refreshToken = AuthTokenManager.getRefreshToken(this)
+
+        if (refreshToken == null) {
+            Log.e("AuthActivity", "Refresh Token không tồn tại. Yêu cầu đăng nhập lại.")
+            // Chuyển người dùng về màn hình đăng nhập
+            navigateToChoiceLogin()
+            return
+        }
+
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val authHeader = "Basic " + Base64.getEncoder().encodeToString("$CLIENT_ID:$CLIENT_SECRET".toByteArray())
+                val apiService = RetrofitAuthInstance.getAuthApiService()
+
+                val tokenResponse = apiService.refreshAccessToken(
+                    authHeader,
+                    "refresh_token",
+                    refreshToken
+                )
+
+                launch(Dispatchers.Main) {
+                    val newAccessToken = tokenResponse.accessToken
+                    // Lưu ý: Spotify có thể gửi lại một Refresh Token mới, hoặc không.
+                    // Nếu có, hãy lưu token mới. Nếu không, giữ nguyên token cũ.
+                    val newRefreshToken = tokenResponse.refreshToken ?: refreshToken
+
+                    if (newAccessToken != null) {
+                        Log.d("AuthActivity", "Đã làm mới Access Token thành công.")
+                        AuthTokenManager.saveTokens(this@AuthActivity, newAccessToken, newRefreshToken)
+                        // Sau khi làm mới thành công, chuyển đến HomeActivity
+                        navigateToHome()
+                    } else {
+                        Log.e("AuthActivity", "Không nhận được Access Token mới. Đăng nhập lại.")
+                        AuthTokenManager.clearTokens(this@AuthActivity)
+                        navigateToChoiceLogin()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AuthActivity", "Lỗi khi làm mới token: ${e.message}")
+                AuthTokenManager.clearTokens(this@AuthActivity)
+                navigateToChoiceLogin()
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
     }
 
     override fun navigateToChoiceLogin() {

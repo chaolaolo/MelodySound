@@ -35,7 +35,7 @@ class MusicFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: HomeViewModel by viewModels {
-        HomeViewModelFactory(SpotifyRepository())
+        HomeViewModelFactory(SpotifyRepository(requireContext()))
     }
 
     private lateinit var newReleaseAdapter: NewReleaseAdapter

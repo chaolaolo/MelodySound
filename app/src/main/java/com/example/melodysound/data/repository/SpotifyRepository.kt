@@ -1,5 +1,6 @@
 package com.example.melodysound.data.repository
 
+import android.content.Context
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.remote.RetrofitInstance
 import androidx.lifecycle.LiveData
@@ -15,8 +16,10 @@ import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.remote.SpotifyApiService
 
 class SpotifyRepository(
-    private val apiService: SpotifyApiService = RetrofitInstance.api
+    private val context: Context
 ) {
+    private val apiService: SpotifyApiService = RetrofitInstance.getSpotifyApiService(context)
+
     suspend fun getNewReleases(
         accessToken: String,
         country: String? = null,
@@ -186,7 +189,10 @@ class SpotifyRepository(
         }
     }
 
-    suspend fun getArtistTopTracks(accessToken: String, id: String): Result<ArtistTopTracksResponse> {
+    suspend fun getArtistTopTracks(
+        accessToken: String,
+        id: String
+    ): Result<ArtistTopTracksResponse> {
         return try {
             val authorizationHeader = "Bearer $accessToken"
             val response = apiService.geArtistTopTracks(
