@@ -16,7 +16,9 @@ class AuthViewModel : ViewModel() {
             "user-top-read",
             "user-read-playback-state",
             "user-modify-playback-state",
-            "streaming"
+            "streaming",
+            "user-follow-read",
+            "playlist-read-collaborative"
         )
         val builder =
             AuthorizationRequest.Builder(Constants.SPOTIFY_CLIENT_ID, AuthorizationResponse.Type.CODE, Constants.SPOTIFY_REDIRECT_URI)

@@ -1,5 +1,6 @@
 package com.example.melodysound.ui.home
 
+import CurrentUser
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
@@ -9,6 +10,7 @@ import com.example.melodysound.data.repository.SpotifyRepository
 import com.example.melodysound.data.repository.Result
 import com.example.melodysound.data.model.AlbumItem
 import com.example.melodysound.data.model.Artist
+import com.example.melodysound.data.model.FollowingArtistsResponse
 import com.example.melodysound.data.model.PlaylistResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.ui.common.AuthTokenManager
@@ -48,10 +50,16 @@ class HomeViewModel(
     val top50Tracks: StateFlow<List<TrackItem>> = _top50Tracks.asStateFlow()
     private val _top50Playlist = MutableStateFlow<PlaylistResponse?>(null)
     val top50Playlist: StateFlow<PlaylistResponse?> = _top50Playlist.asStateFlow()
-
     private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
     val artistDetailsForAlbum: StateFlow<Artist?> = _artistDetailsForAlbum.asStateFlow()
 
+    private val _currentUser = MutableStateFlow<CurrentUser?>(null)
+    val currentUser: StateFlow<CurrentUser?> = _currentUser.asStateFlow()
+
+    private val _followingArtists = MutableStateFlow<FollowingArtistsResponse?>(null)
+    val followingArtists: StateFlow<FollowingArtistsResponse?> = _followingArtists.asStateFlow()
+    private val _userPlaylists = MutableStateFlow<List<PlaylistResponse>>(emptyList())
+    val userPlaylists: StateFlow<List<PlaylistResponse>> = _userPlaylists.asStateFlow()
 
     // Trạng thái loading
     private val _isLoading = MutableStateFlow(false)
@@ -331,6 +339,7 @@ class HomeViewModel(
                     _currentTrack.value = result.data
                     _isPlaying.value = true // Giả định khi có bài hát, nó đang phát
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = "Failed to update current track: ${result.message}"
                 }
@@ -346,6 +355,7 @@ class HomeViewModel(
                 is Result.Success -> {
                     updateCurrentlyPlayingTrack(accessToken)
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = "Failed to skip to next track: ${result.message}"
                 }
@@ -362,6 +372,7 @@ class HomeViewModel(
                 is Result.Success -> {
                     updateCurrentlyPlayingTrack(accessToken)
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = "Failed to skip to previous track: ${result.message}"
                 }
@@ -383,6 +394,7 @@ class HomeViewModel(
                         .mapNotNull { it.track } // Lấy ra đối tượng `track` từ mỗi item, nếu nó không null
                         .filter { it.name != null && it.id != null } // Lọc tiếp các track rỗng
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = result.message
                     Log.e("HomeViewModel", "Failed to load top 50 tracks: ${result.message}")
@@ -391,6 +403,7 @@ class HomeViewModel(
             _isLoading.value = false
         }
     }
+
     fun loadTop50PlaylistDetails(accessToken: String, playlistId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -401,9 +414,69 @@ class HomeViewModel(
                 is Result.Success -> {
                     _top50Playlist.value = result.data
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = result.message
                     Log.e("HomeViewModel", "Failed to load playlist details: ${result.message}")
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+
+    fun loadCurrentUser(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _currentUser.value = null
+
+            when (val result = repository.getCurrentUser(accessToken)) {
+                is Result.Success -> {
+                    _currentUser.value = result.data
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load current user: ${result.message}"
+                    Log.e("HomeViewModel", "Failed to load current user: ${result.message}")
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadFollowingArtists(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            when (val result = repository.getFollowingArtists(accessToken)) {
+                is Result.Success -> {
+                    _followingArtists.value = result.data
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load following artists: ${result.message}"
+                    Log.e(
+                        "HomeViewModel",
+                        "Failed to load following artists: ${result.message}"
+                    )
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadCurrentUserPlaylists(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            when (val result = repository.getCurrentUserPlaylists(accessToken)) {
+                is Result.Success -> {
+                    _userPlaylists.value = result.data.items
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to load user playlists: ${result.message}"
                 }
             }
             _isLoading.value = false

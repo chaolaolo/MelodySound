@@ -6,7 +6,7 @@ data class PagingArtists(
     @SerializedName("href")
     val href: String,
     @SerializedName("items")
-    val items: List<Artist>, // Danh sách các nghệ sĩ
+    val items: List<Artist>,
     @SerializedName("limit")
     val limit: Int,
     @SerializedName("next")
@@ -16,5 +16,13 @@ data class PagingArtists(
     @SerializedName("previous")
     val previous: String?,
     @SerializedName("total")
-    val total: Int
+    val total: Int,
+    @SerializedName("cursors")
+    val cursors: Cursors?,
+)
+
+
+data class Cursors(
+    @SerializedName("after")
+    val after: String? // Có thể là null
 )

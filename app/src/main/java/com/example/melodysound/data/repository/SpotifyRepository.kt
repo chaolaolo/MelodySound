@@ -1,13 +1,16 @@
 package com.example.melodysound.data.repository
 
+import CurrentUser
 import android.content.Context
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.remote.RetrofitInstance
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.ArtistTopTracksResponse
+import com.example.melodysound.data.model.FollowingArtistsResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
+import com.example.melodysound.data.model.PagingPlaylistsResponse
 import com.example.melodysound.data.model.PagingTopChartTracks
 import com.example.melodysound.data.model.PagingTracks
 import com.example.melodysound.data.model.PlayRequestBody
@@ -374,6 +377,59 @@ class SpotifyRepository(
             Result.Error("An error occurred while getting playlist details: ${e.message}")
         }
     }
+
+
+    suspend fun getCurrentUser(accessToken: String): Result<CurrentUser> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getCurrentUser(authorizationHeader)
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for current user")
+            } else {
+                Result.Error("API call failed for current user with code: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting current user: ${e.message}")
+        }
+    }
+
+    suspend fun getFollowingArtists(accessToken: String): Result<FollowingArtistsResponse> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getFollowingArtists(authorizationHeader)
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for following artists")
+            } else {
+                Result.Error("API call failed for following artists with code: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting following artists: ${e.message}")
+        }
+    }
+
+    suspend fun getCurrentUserPlaylists(accessToken: String): Result<PagingPlaylistsResponse> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getCurrentUserPlaylists(authorizationHeader)
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for user playlists")
+            } else {
+                Result.Error("API call failed for user playlists with code: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting user playlists: ${e.message}")
+        }
+    }
+
 
 }
 

@@ -1,12 +1,15 @@
 package com.example.melodysound.data.remote
 
+import CurrentUser
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.ArtistTopTracksResponse
 import com.example.melodysound.data.model.CurrentlyPlayingResponse
+import com.example.melodysound.data.model.FollowingArtistsResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
+import com.example.melodysound.data.model.PagingPlaylistsResponse
 import com.example.melodysound.data.model.PagingTopChartTracks
 import com.example.melodysound.data.model.PagingTracks
 import com.example.melodysound.data.model.PlayRequestBody
@@ -147,4 +150,22 @@ interface SpotifyApiService {
         @Path("playlist_id") playlistId: String
     ): Response<PlaylistResponse>
 
+    //    getCurrentUser
+    @GET("me")
+    suspend fun getCurrentUser(
+        @Header("Authorization") authorization: String
+    ): Response<CurrentUser>
+
+    @GET("me/following")
+    suspend fun getFollowingArtists(
+        @Header("Authorization") authorization: String,
+        @Query("type") type: String = "artist",
+        @Query("limit") limit: Int = 50 // Giới hạn số lượng trả về
+    ): Response<FollowingArtistsResponse>
+
+    @GET("me/playlists")
+    suspend fun getCurrentUserPlaylists(
+        @Header("Authorization") authorization: String,
+        @Query("limit") limit: Int = 20
+    ): Response<PagingPlaylistsResponse>
 }
