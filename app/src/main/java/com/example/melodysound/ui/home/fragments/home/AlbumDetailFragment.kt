@@ -30,7 +30,10 @@ class AlbumDetailFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: HomeViewModel by viewModels {
-        HomeViewModelFactory(SpotifyRepository())
+        HomeViewModelFactory(
+            application = requireActivity().application,
+            SpotifyRepository(requireContext())
+        )
     }
 
     private lateinit var albumTrackAdapter: AlbumTrackAdapter

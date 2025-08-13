@@ -19,11 +19,16 @@ import com.example.melodysound.databinding.ActivityHomeBinding
 import com.example.melodysound.databinding.PlayerBarLayoutBinding
 import com.example.melodysound.ui.common.AuthTokenManager
 import com.example.melodysound.ui.home.fragments.HomeViewModelFactory
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.PlaybackException
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.example.melodysound.ui.home.fragments.PlayerBarFragment
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
+
 
 interface OnTrackSelectedListener {
     fun onTrackSelected(trackId: String)
@@ -31,21 +36,18 @@ interface OnTrackSelectedListener {
 
 class HomeActivity : AppCompatActivity(), OnTrackSelectedListener {
     private lateinit var binding: ActivityHomeBinding
-    private lateinit var playerBarBinding: PlayerBarLayoutBinding
     private lateinit var navController: NavController
     private val viewModel: HomeViewModel by viewModels {
-        HomeViewModelFactory(SpotifyRepository())
+        HomeViewModelFactory(application, SpotifyRepository(this))
     }
 
-    private var exoPlayer: SimpleExoPlayer? = null
-
+    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        playerBarBinding = PlayerBarLayoutBinding.bind(binding.playerBarContainer.getChildAt(0))
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -53,18 +55,20 @@ class HomeActivity : AppCompatActivity(), OnTrackSelectedListener {
             insets
         }
 
-        setupPlayerBarObserver()
-        initializeExoPlayer()
+//        setupPlayerBarObserver()
+        setupNavigation()
 
-        val actok = AuthTokenManager.getAccessToken(this)
-        val retok = AuthTokenManager.getRefreshToken(this)
+        val accessToken = AuthTokenManager.getAccessToken(this)
+        val refreshToken = AuthTokenManager.getRefreshToken(this)
 
-        Log.d("HomeActivityToken", "accesstoken: $actok \n refreshtoken: $retok")
-        Log.d("HomeActivity", "open home fragment")
+        Log.d("HomeActivityToken", "Access token exists: ${accessToken}")
+        Log.d("HomeActivityToken", "Refresh token exists: ${refreshToken}")
+    }
 
+
+    private fun setupNavigation() {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment_activity_home) as NavHostFragment
-
         navController = navHostFragment.navController
 
         binding.navView.setOnItemSelectedListener { item ->
@@ -94,98 +98,43 @@ class HomeActivity : AppCompatActivity(), OnTrackSelectedListener {
         }
     }
 
-
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp() || super.onSupportNavigateUp()
     }
 
     override fun onTrackSelected(trackId: String) {
+        Log.d("HomeActivity", "Track selected: $trackId")
+        binding.playerBarContainer.visibility = View.VISIBLE
+
         val accessToken = AuthTokenManager.getAccessToken(this)
         if (accessToken != null) {
-            viewModel.loadTrackDetails(accessToken, trackId)
+            showPlayerBar()
+            viewModel.loadPlayerTrackDetails(accessToken, trackId)
+
+            val trackUri = "spotify:track:$trackId"
+            viewModel.playTrack(accessToken, trackUri)
         } else {
-            Toast.makeText(this, "Bạn chưa đăng nhập!", Toast.LENGTH_SHORT).show()
-        }
-        binding.playerBarContainer.visibility = View.VISIBLE
-    }
-
-    private fun initializeExoPlayer() {
-        exoPlayer = SimpleExoPlayer.Builder(this).build()
-        exoPlayer?.addListener(object : Player.Listener {
-            override fun onIsLoadingChanged(isPlaying: Boolean) {
-                super.onIsLoadingChanged(isPlaying)
-                if (isPlaying) {
-                    playerBarBinding.btnPlayPause.setImageResource(R.drawable.baseline_pause)
-                } else {
-                    playerBarBinding.btnPlayPause.setImageResource(R.drawable.baseline_play_arrow)
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                super.onPlayerError(error)
-                Toast.makeText(
-                    this@HomeActivity,
-                    "Lỗi phát nhạc: ${error.message}",
-                    Toast.LENGTH_SHORT
-                )
-                    .show()
-            }
-        })
-
-        playerBarBinding.btnPlayPause.setOnClickListener {
-            if (exoPlayer?.isPlaying == true) {
-                exoPlayer?.pause()
-            } else {
-                exoPlayer?.play()
-            }
+            Toast.makeText(
+                this,
+                "Không tìm thấy access token. Vui lòng đăng nhập lại.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
-    private fun setupPlayerBarObserver() {
-        lifecycleScope.launch {
-            viewModel.trackDetails.collect { trackItem ->
-                trackItem?.let {
-                    // Cập nhật giao diện player bar với dữ liệu mới
-                    playerBarBinding.tvSongTitle.text = it.name
-                    playerBarBinding.tvArtistName.text =
-                        it.artists.joinToString(", ") { artist -> artist.name }
-
-                    val imageUrl = it.album.images.firstOrNull()?.url
-                    if (imageUrl != null) {
-                        Glide.with(this@HomeActivity)
-                            .load(imageUrl)
-                            .placeholder(R.drawable.logo)
-                            .into(playerBarBinding.ivAlbumArt)
-                    } else {
-                        playerBarBinding.ivAlbumArt.setImageResource(R.drawable.logo)
-                    }
-
-
-                    val previewUrl = it.previewUrl
-                    if (!previewUrl.isNullOrEmpty()) {
-                        val mediaItem = MediaItem.fromUri(previewUrl)
-                        exoPlayer?.setMediaItem(mediaItem)
-                        exoPlayer?.prepare()
-                        exoPlayer?.play()
-                    } else {
-                        Toast.makeText(
-                            this@HomeActivity,
-                            "Bài hát không có link preview",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        exoPlayer?.stop()
-                    }
-
-                }
-            }
+    private fun showPlayerBar() {
+        // Kiểm tra nếu fragment chưa được thêm thì thêm
+        if (supportFragmentManager.findFragmentById(R.id.player_bar_container) == null) {
+            binding.playerBarContainer.visibility = View.VISIBLE
+            val fragmentTransaction = supportFragmentManager.beginTransaction()
+            // Không truyền trackId nữa, fragment sẽ tự lắng nghe ViewModel
+            val playerBarFragment = PlayerBarFragment()
+            fragmentTransaction.replace(binding.playerBarContainer.id, playerBarFragment)
+            fragmentTransaction.commit()
         }
     }
-
 
     override fun onDestroy() {
         super.onDestroy()
-        exoPlayer?.release()
-        exoPlayer = null
     }
-
 }

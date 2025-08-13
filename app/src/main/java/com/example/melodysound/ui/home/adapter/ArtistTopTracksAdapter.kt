@@ -11,11 +11,11 @@ import com.example.melodysound.databinding.ItemTrackBinding
 import java.text.DecimalFormat
 
 class ArtistTopTracksAdapter(
-    private val tracks: MutableList<Track> = mutableListOf(),
-    private val onItemClick: (Track) -> Unit
+    private val tracks: MutableList<TrackItem> = mutableListOf(),
+    private val onItemClick: (TrackItem) -> Unit
 ) : RecyclerView.Adapter<ArtistTopTracksAdapter.TrackViewHolder>() {
 
-    fun submitList(newTracks: List<Track>) {
+    fun submitList(newTracks: List<TrackItem>) {
         tracks.clear()
         tracks.addAll(newTracks)
         notifyDataSetChanged()
@@ -23,7 +23,7 @@ class ArtistTopTracksAdapter(
 
     inner class TrackViewHolder(private val binding: ItemTrackBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(track: Track, position: Int) {
+        fun bind(track: TrackItem, position: Int) {
             binding.txtNumerOrder.text = (position + 1).toString()
             binding.txtTrackName.text = track.name
             val formatter = DecimalFormat("#,###,###")

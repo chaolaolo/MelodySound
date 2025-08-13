@@ -85,6 +85,15 @@
 
             <!-- Nút điều khiển: Phát/Tạm dừng -->
             <ImageButton
+                android:id="@+id/btn_previous"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/baseline_skip_previous"
+                app:tint="@android:color/white"
+                tools:ignore="ContentDescription" />
+
+            <ImageButton
                 android:id="@+id/btn_play_pause"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -93,6 +102,14 @@
                 app:tint="@android:color/white"
                 tools:ignore="ContentDescription" />
 
+            <ImageButton
+                android:id="@+id/btn_next"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/baseline_skip_next"
+                app:tint="@android:color/white"
+                tools:ignore="ContentDescription" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

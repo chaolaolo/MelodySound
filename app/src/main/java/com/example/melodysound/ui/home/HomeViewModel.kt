@@ -1,6 +1,8 @@
 package com.example.melodysound.ui.home
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodysound.data.model.AlbumFull
@@ -10,12 +12,18 @@ import com.example.melodysound.data.model.AlbumItem
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.Track
 import com.example.melodysound.data.model.TrackItem
+import com.example.melodysound.ui.common.AuthTokenManager
+import dagger.hilt.android.internal.Contexts.getApplication
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
+class HomeViewModel(
+    application: Application,
+    private val repository: SpotifyRepository
+) : AndroidViewModel(application) {
 
     private val _newReleases = MutableStateFlow<List<AlbumItem>>(emptyList())
     val newReleases: StateFlow<List<AlbumItem>> = _newReleases.asStateFlow()
@@ -29,11 +37,14 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
     val trackDetails: StateFlow<TrackItem?> = _trackDetails.asStateFlow()
     private val _artistDetails = MutableStateFlow<Artist?>(null)
     val artistDetails: StateFlow<Artist?> = _artistDetails.asStateFlow()
-    private val _artistTopTracks = MutableStateFlow<List<Track>>(emptyList())
-    val artistTopTracks: StateFlow<List<Track>> = _artistTopTracks.asStateFlow()
+    private val _artistTopTracks = MutableStateFlow<List<TrackItem>>(emptyList())
+    val artistTopTracks: StateFlow<List<TrackItem>> = _artistTopTracks.asStateFlow()
     private val _artistAlbums = MutableStateFlow<List<AlbumItem>>(emptyList())
     val artistAlbums: StateFlow<List<AlbumItem>> = _artistAlbums.asStateFlow()
-
+    private val _currentTrack = MutableStateFlow<TrackItem?>(null)
+    val currentTrack: StateFlow<TrackItem?> = _currentTrack.asStateFlow()
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
     private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
     val artistDetailsForAlbum: StateFlow<Artist?> = _artistDetailsForAlbum.asStateFlow()
@@ -236,5 +247,141 @@ class HomeViewModel(private val repository: SpotifyRepository) : ViewModel() {
             _isLoading.value = false
         }
     }
+
+    fun loadPlayerTrackDetails(accessToken: String, trackId: String) {
+        viewModelScope.launch {
+            when (val result = repository.getTrack(accessToken, trackId)) {
+                is Result.Success -> {
+                    _currentTrack.value = result.data
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value =
+                        "Failed to load track details for player: ${result.message}"
+                    Log.e(
+                        "HomeViewModel",
+                        "Failed to load track details for player: ${result.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun playTrack(accessToken: String, trackUri: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.playTrack(accessToken, trackUri)) {
+                is Result.Success -> {
+                    _isPlaying.value = true
+                    _errorMessage.value = null
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to play track: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun playPlaylist(accessToken: String, playlistUri: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.playPlaylist(accessToken, playlistUri)) {
+                is Result.Success -> {
+                    _isPlaying.value = true
+                    _errorMessage.value = null
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to play playlist: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun resumePlayback(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.resumePlayback(accessToken)) {
+                is Result.Success -> {
+                    _isPlaying.value = true
+                    _errorMessage.value = null
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to resume playback: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun pausePlayback(accessToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.pausePlayback(accessToken)) {
+                is Result.Success -> {
+                    _isPlaying.value = false
+                    _errorMessage.value = null
+                }
+
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to pause playback: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun updateCurrentlyPlayingTrack(accessToken: String) {
+        viewModelScope.launch {
+            // Đợi một chút để Spotify có thời gian xử lý lệnh skip
+            delay(1000) // Đợi 1 giây
+
+            when (val result = repository.getCurrentlyPlayingTrack(accessToken)) {
+                is Result.Success -> {
+                    _currentTrack.value = result.data
+                    _isPlaying.value = true // Giả định khi có bài hát, nó đang phát
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to update current track: ${result.message}"
+                }
+            }
+        }
+    }
+
+    fun skipToNext() {
+        val accessToken = AuthTokenManager.getAccessToken(getApplication()) ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.skipToNext(accessToken)) {
+                is Result.Success -> {
+                    updateCurrentlyPlayingTrack(accessToken)
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to skip to next track: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun skipToPrevious() {
+        val accessToken = AuthTokenManager.getAccessToken(getApplication()) ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            when (val result = repository.skipToPrevious(accessToken)) {
+                is Result.Success -> {
+                    updateCurrentlyPlayingTrack(accessToken)
+                }
+                is Result.Error -> {
+                    _errorMessage.value = "Failed to skip to previous track: ${result.message}"
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
 
 }

@@ -1,94 +1,327 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Spotify Web Playback SDK</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Web Playback</title>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h3 {
+            color: #1DB954;
+            font-size: 1.5em;
+            text-align: center;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 50px;
+            background-color: #1DB954;
+            color: white;
+        }
+        p {
+            text-align: center;
+            font-size: 0.9em;
+            color: #b3b3b3;
+        }
+    </style>
 </head>
 <body>
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
-<script>
-    window.onSpotifyWebPlaybackSDKReady = () => {
-        const token = localStorage.getItem('spotify_token');
+<h3>Spotify Web Playback SDK</h3>
+<p id="status-message">Đang khởi tạo...</p>
+<button onclick="togglePlay()" id="play-button" disabled>▶ / ⏸</button>
 
-        if (!token) {
-            // Trả về lỗi nếu không có token
-            Android.onPlaybackError("Token is not available");
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('token');
+
+    if (!token) {
+        console.error('Không có token được cung cấp trong chuỗi query.');
+        document.getElementById('status-message').innerText = 'Không có token!';
+        notifyAndroid('onAuthError');
+    } else {
+        document.getElementById('status-message').innerText = 'Token đã nhận, đang kết nối...';
+    }
+
+    let player;
+    let deviceId = null;
+    let isReady = false;
+    let isPlaying = false;
+    const pendingPlayQueue = [];
+
+    // Hàm tiện ích để log và thông báo Android
+    function notifyAndroid(method, ...args) {
+        try {
+            if (window.Android && window.Android[method]) {
+                window.Android[method](...args);
+            }
+        } catch (e) {
+            console.error('Lỗi khi gọi phương thức Android:', method, e);
+        }
+    }
+
+    window.playTrack = function(trackUri) {
+        console.log('playTrack được gọi với:', trackUri);
+
+           if (!deviceId) {
+            console.error('Device ID chưa sẵn sàng');
+            document.getElementById('status-message').innerText = 'Đang chờ thiết bị sẵn sàng...';
+            pendingPlayQueue.push(trackUri);
             return;
         }
 
-        const player = new Spotify.Player({
-            name: 'MelodySound Player',
-            getOAuthToken: cb => { cb(token); },
-            volume: 0.5
+        if (!token) {
+            console.error('Token không tồn tại');
+            notifyAndroid('onAuthError');
+            return;
+        }
+
+        // Nếu mọi thứ ok, phát ngay
+        playUriWithApi(trackUri);
+    };
+
+  function checkAndPlay() {
+        if (pendingPlayQueue.length > 0 && deviceId) {
+            const trackUri = pendingPlayQueue.shift();
+            playUriWithApi(trackUri);
+        }
+    }
+
+    window.onSpotifyWebPlaybackSDKReady = () => {
+        console.log('Spotify SDK đã sẵn sàng, đang tạo player...');
+        document.getElementById('status-message').innerText = 'Đang tạo player...';
+
+        player = new Spotify.Player({
+            name: 'Android Spotify Player',
+            getOAuthToken: cb => {
+                console.log('Đang lấy OAuth token...');
+                cb(token);
+            },
+            volume: 0.7
         });
 
-        // Kết nối trình phát
-        player.connect();
-
-        // Các sự kiện của trình phát
+        console.log("=== DEBUG TOKEN ===", token);
         player.addListener('ready', ({ device_id }) => {
-            Android.onPlaybackReady(device_id);
-        });
+            console.log("=== DEBUG DEVICE_ID ===", device_id);
+            console.log('Player đã sẵn sàng với Device ID:', device_id);
+            // Log deviceId ra console để Android Studio có thể thấy
+            console.log('DEVICE_ID_LOG:', device_id);
+            deviceId = device_id;
+            document.getElementById('status-message').innerText = `Player sẵn sàng, đang chuyển playback đến device ID: ${device_id}`;
 
-        player.addListener('not_ready', ({ device_id }) => {
-            Android.onPlaybackError("Device not ready");
+            console.log("Gửi deviceId về Android:", device_id);
+            notifyAndroid('onDeviceIdReceived', deviceId);
+            transferPlayback()
+                .then(() => {
+                    isReady = true;
+                    document.getElementById('status-message').innerText = 'Sẵn sàng phát nhạc!';
+                    document.getElementById('play-button').disabled = false;
+                    notifyAndroid('onDeviceReady');
+                    processPendingQueue();
+                    checkAndPlay();
+                })
+                .catch(err => {
+                    console.error('Lỗi chuyển playback:', err);
+                    document.getElementById('status-message').innerText = `Lỗi chuyển playback: ${err.message}`;
+                    // Thông báo lỗi cụ thể hơn cho Android
+                    notifyAndroid('onPlaybackError', err.message);
+                    isReady = true;
+                    document.getElementById('play-button').disabled = false;
+                });
         });
 
         player.addListener('player_state_changed', state => {
-            if (!state) return;
-            const track = state.track_window.current_track;
-            const paused = state.paused;
-            const position = state.position;
-            const duration = state.duration;
+            if (!state) {
+                console.log('Trạng thái player là null');
+                return;
+            }
 
-            Android.onPlayerStateChanged(JSON.stringify({
-                trackId: track.id,
-                trackName: track.name,
-                artistName: track.artists.map(a => a.name).join(', '),
-                albumImageUrl: track.album.images[0].url,
-                paused: paused,
-                position: position,
-                duration: duration
-            }));
+            console.log('Trạng thái player đã thay đổi:', state);
+            const currentTrack = state.track_window.current_track;
+            isPlaying = !state.paused;
+
+            notifyAndroid('onPlayStateChanged', isPlaying);
+
+            if (currentTrack && isPlaying) {
+                console.log('Đang phát:', currentTrack.name);
+                document.getElementById('status-message').innerText = `Đang phát: ${currentTrack.name}`;
+                notifyAndroid('onTrackPlaySuccess', currentTrack.name);
+            } else if (currentTrack && !isPlaying) {
+                console.log('Đã tạm dừng:', currentTrack.name);
+                document.getElementById('status-message').innerText = `Tạm dừng: ${currentTrack.name}`;
+            }
+        });
+
+        player.addListener('not_ready', ({ device_id }) => {
+            console.log('Thiết bị đã ngoại tuyến:', device_id);
+            isReady = false;
+            deviceId = null;
+            document.getElementById('status-message').innerText = 'Thiết bị ngoại tuyến';
+            document.getElementById('play-button').disabled = true;
         });
 
         player.addListener('initialization_error', ({ message }) => {
-            Android.onPlaybackError(`Initialization Error: ${message}`);
-        });
-        player.addListener('authentication_error', ({ message }) => {
-            Android.onPlaybackError(`Authentication Error: ${message}`);
-        });
-        player.addListener('account_error', ({ message }) => {
-            Android.onPlaybackError(`Account Error: ${message}`);
+            console.error('Lỗi khởi tạo:', message);
+            document.getElementById('status-message').innerText = `Lỗi khởi tạo: ${message}`;
+            notifyAndroid('onAuthError');
         });
 
-        // Các hàm để Android gọi
-        window.playTrack = (uri, deviceId) => {
-            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        player.addListener('authentication_error', ({ message }) => {
+            console.error('Lỗi xác thực:', message);
+            document.getElementById('status-message').innerText = `Lỗi xác thực: ${message}`;
+            notifyAndroid('onAuthError');
+        });
+
+        player.addListener('account_error', ({ message }) => {
+            console.error('Lỗi tài khoản:', message);
+            document.getElementById('status-message').innerText = `Lỗi tài khoản: ${message}`;
+            notifyAndroid('onAccountError', message);
+        });
+
+        player.addListener('playback_error', ({ message }) => {
+            console.error('Lỗi phát nhạc:', message);
+            document.getElementById('status-message').innerText = `Lỗi phát nhạc: ${message}`;
+            notifyAndroid('onPlaybackError', message);
+        });
+
+        console.log('Đang kết nối player...');
+        player.connect().then(success => {
+            if (success) {
+                console.log('Đã kết nối thành công với Spotify!');
+                document.getElementById('status-message').innerText = 'Đã kết nối, đang chờ device...'+deviceId+" , "+token;
+            } else {
+                console.warn('Kết nối với Spotify thất bại');
+                document.getElementById('status-message').innerText = 'Kết nối thất bại';
+            }
+        }).catch(err => {
+            console.error('Lỗi kết nối:', err);
+            document.getElementById('status-message').innerText = `Lỗi kết nối: ${err}`;
+        });
+    };
+
+    async function transferPlayback() {
+        if (!deviceId || !token) {
+            throw new Error('Không có device ID hoặc token.');
+        }
+
+        const response = await fetch('https://api.spotify.com/v1/me/player', {
+            method: 'PUT',
+            body: JSON.stringify({ device_ids: [deviceId], play: false }),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.status === 401) {
+            throw new Error('Xác thực thất bại - token có thể đã hết hạn.');
+        }
+
+        if (response.status === 403) {
+            // Lỗi này thường do tài khoản không phải Premium
+            throw new Error('Yêu cầu tài khoản Spotify Premium.');
+        }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Lỗi transfer playback:', response.status, errorText);
+            throw new Error(`Lỗi transfer playback: ${response.status} ${response.statusText}`);
+        }
+
+        console.log('Playback đã được chuyển thành công đến thiết bị:', deviceId);
+    }
+
+    async function playUriWithApi(trackUri) {
+        if (!deviceId || !token) {
+            console.error('Không thể phát: không có device ID hoặc token');
+            notifyAndroid('onPlaybackError', 'Không có device ID hoặc token');
+            return;
+        }
+
+        console.log('Đang phát bài hát qua API:', trackUri);
+
+        try {
+            const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
                 method: 'PUT',
-                body: JSON.stringify({
-                    uris: [uri]
-                }),
+                body: JSON.stringify({ uris: [trackUri] }),
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
+                }
             });
-        };
 
-        window.resume = (deviceId) => {
-            fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-        };
+            if (response.status === 401) {
+                console.error('Xác thực thất bại khi phát nhạc');
+                notifyAndroid('onAuthError');
+                return;
+            }
 
-        window.pause = (deviceId) => {
-            fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${deviceId}`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-        };
+            if (response.status === 403) {
+                console.error('Yêu cầu tài khoản Premium');
+                notifyAndroid('onAccountError', 'Yêu cầu tài khoản Spotify Premium');
+                return;
+            }
+
+            if (response.status === 404) {
+                console.error('Không tìm thấy thiết bị');
+                notifyAndroid('onPlaybackError', 'Không tìm thấy thiết bị');
+                return;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Lỗi API play:', response.status, errorText);
+                notifyAndroid('onPlaybackError', `Lỗi API: ${response.status}`);
+                return;
+            }
+
+            console.log('Lệnh phát bài hát đã được gửi thành công');
+            notifyAndroid('onPlayStateChanged', true);
+        } catch (error) {
+            console.error('Lỗi mạng khi phát nhạc:', error);
+            notifyAndroid('onPlaybackError', 'Lỗi mạng');
+        }
+    }
+
+    function processPendingQueue() {
+        if (pendingPlayQueue.length > 0) {
+            console.log('Đang xử lý hàng đợi, số mục:', pendingPlayQueue.length);
+            const latestTrack = pendingPlayQueue[pendingPlayQueue.length - 1];
+            pendingPlayQueue.length = 0;
+            playUriWithApi(latestTrack);
+        }
+    }
+
+    window.togglePlay = function() {
+        if (!player) {
+            console.error('Player không khả dụng');
+            return;
+        }
+        player.togglePlay();
     };
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            console.log('Trang bị ẩn');
+        } else {
+            console.log('Trang hiển thị');
+        }
+    });
+
+    window.addEventListener('error', function(e) {
+        console.error('Lỗi chưa được xử lý:', e.error);
+        notifyAndroid('onPlaybackError', 'Lỗi không mong muốn: ' + e.message);
+    });
 </script>
 </body>
 </html>

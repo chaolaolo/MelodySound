@@ -11,6 +11,7 @@ import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
 import com.example.melodysound.data.model.PagingTracks
+import com.example.melodysound.data.model.PlayRequestBody
 import com.example.melodysound.data.model.TopTracksResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.remote.SpotifyApiService
@@ -228,6 +229,99 @@ class SpotifyRepository(
             }
         } catch (e: Exception) {
             Result.Error("An error occurred: ${e.message}")
+        }
+    }
+
+    // các phương thức để phát nhạc
+    suspend fun playTrack(accessToken: String, trackUri: String): Result<Unit> {
+        return try {
+            val requestBody = PlayRequestBody(uris = listOf(trackUri))
+            val response = apiService.playTrack("Bearer $accessToken", requestBody)
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun pausePlayback(accessToken: String): Result<Unit> {
+        return try {
+            val response = apiService.pausePlayback("Bearer $accessToken")
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun playPlaylist(accessToken: String, playlistUri: String): Result<Unit> {
+        return try {
+            // Thêm logic gọi API play với context_uri
+            // Ví dụ: val requestBody = PlayContextRequestBody(context_uri = playlistUri)
+            // ...
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun resumePlayback(accessToken: String): Result<Unit> {
+        return try {
+            val response = apiService.resumePlayback("Bearer $accessToken")
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
+        }
+    }
+
+    suspend fun skipToNext(accessToken: String): Result<Unit> {
+        return try {
+            val response = apiService.skipToNext("Bearer $accessToken")
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred: ${e.message}")
+        }
+    }
+
+    suspend fun skipToPrevious(accessToken: String): Result<Unit> {
+        return try {
+            val response = apiService.skipToPrevious("Bearer $accessToken")
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred: ${e.message}")
+        }
+    }
+
+    suspend fun getCurrentlyPlayingTrack(accessToken: String): Result<TrackItem> {
+        return try {
+            val response = apiService.getCurrentlyPlayingTrack("Bearer $accessToken")
+            if (response.isSuccessful) {
+                response.body()?.track?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty track item in response.")
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
         }
     }
 

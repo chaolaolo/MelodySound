@@ -3,17 +3,22 @@ package com.example.melodysound.data.remote
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.ArtistTopTracksResponse
+import com.example.melodysound.data.model.CurrentlyPlayingResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
 import com.example.melodysound.data.model.PagingTracks
+import com.example.melodysound.data.model.PlayRequestBody
 import com.example.melodysound.data.model.TopTracksResponse
 import com.example.melodysound.data.model.Track
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.model.UserTopTracksResponse
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -89,4 +94,39 @@ interface SpotifyApiService {
 //        @Query("market") market: String = "VN",
         @Query("limit") limit: Int = 20
     ): Response<PagingAlbums>
+
+    // Endpoint để phát nhạc
+    @PUT("me/player/play")
+    suspend fun playTrack(
+        @Header("Authorization") authorization: String,
+        @Body requestBody: PlayRequestBody
+    ): Response<Unit>
+
+    // Endpoint để tạm dừng nhạc
+    @PUT("me/player/pause")
+    suspend fun pausePlayback(
+        @Header("Authorization") authorization: String
+    ): Response<Unit>
+
+    @PUT("me/player/play")
+    suspend fun resumePlayback(
+        @Header("Authorization") authorization: String
+    ): Response<Unit>
+
+    // Endpoint để chuyển bài hát tiếp theo
+    @POST("me/player/next")
+    suspend fun skipToNext(
+        @Header("Authorization") authorization: String
+    ): Response<Unit>
+
+    // Endpoint để chuyển bài hát trước đó
+    @POST("me/player/previous")
+    suspend fun skipToPrevious(
+        @Header("Authorization") authorization: String
+    ): Response<Unit>
+
+    @GET("me/player/currently-playing")
+    suspend fun getCurrentlyPlayingTrack(
+        @Header("Authorization") authorization: String
+    ): Response<CurrentlyPlayingResponse>
 }

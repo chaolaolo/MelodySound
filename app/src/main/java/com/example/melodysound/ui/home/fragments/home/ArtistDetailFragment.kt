@@ -35,7 +35,10 @@ class ArtistDetailFragment : Fragment() {
     private var _binding: FragmentArtistDetailBinding? = null
     private val binding get() = _binding!!
     private val viewModel: HomeViewModel by viewModels {
-        HomeViewModelFactory(SpotifyRepository())
+        HomeViewModelFactory(
+            application = requireActivity().application,
+            SpotifyRepository(requireContext())
+        )
     }
     private lateinit var popularTracksAdapter: ArtistTopTracksAdapter
     private lateinit var albumsAdapter: ArtistAlbumsAdapter
@@ -96,7 +99,17 @@ class ArtistDetailFragment : Fragment() {
 
     private fun setupRecyclerViews() {
         popularTracksAdapter = ArtistTopTracksAdapter(onItemClick = { track ->
-            trackSelectedListener?.onTrackSelected(track.id)
+            val accessToken = AuthTokenManager.getAccessToken(requireContext())
+            if (accessToken != null) {
+                // Gọi playTrack từ ViewModel
+                viewModel.playTrack(accessToken, "spotify:track:${track.id}")
+                // Cập nhật UI với thông tin bài hát mới
+                viewModel.loadPlayerTrackDetails(accessToken, track.id)
+                // Hiển thị thanh player
+                trackSelectedListener?.onTrackSelected(track.id)
+            } else {
+                Toast.makeText(context, "Không có access token", Toast.LENGTH_SHORT).show()
+            }
         })
 
         albumsAdapter = ArtistAlbumsAdapter(onItemClick = { album ->
