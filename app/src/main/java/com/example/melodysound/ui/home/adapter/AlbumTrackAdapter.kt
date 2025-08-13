@@ -3,16 +3,18 @@ package com.example.melodysound.ui.home.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.databinding.ItemAlbumTrackBinding
 
 class AlbumTrackAdapter(
-    private val tracks: MutableList<TrackItem> = mutableListOf()
+    private val onItemClick: (TrackItem) -> Unit
 ) : RecyclerView.Adapter<AlbumTrackAdapter.TrackViewHolder>() {
 
+    private var tracks: List<TrackItem> = emptyList()
+
     fun submitList(newTracks: List<TrackItem>) {
-        tracks.clear()
-        tracks.addAll(newTracks)
+        tracks = newTracks
         notifyDataSetChanged()
     }
 
@@ -53,7 +55,7 @@ class AlbumTrackAdapter(
 
             // Xử lý sự kiện click vào bài hát nếu cần
             binding.root.setOnClickListener {
-                // Ví dụ: phát nhạc hoặc chuyển đến màn hình chi tiết bài hát
+                onItemClick(track)
             }
         }
 

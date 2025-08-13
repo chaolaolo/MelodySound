@@ -1,5 +1,6 @@
 package com.example.melodysound.ui.home.fragments.home
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -19,6 +20,7 @@ import com.example.melodysound.data.repository.SpotifyRepository
 import com.example.melodysound.databinding.FragmentAlbumDetailBinding
 import com.example.melodysound.ui.common.AuthTokenManager
 import com.example.melodysound.ui.home.HomeViewModel
+import com.example.melodysound.ui.home.OnTrackSelectedListener
 import com.example.melodysound.ui.home.adapter.AlbumTrackAdapter
 import com.example.melodysound.ui.home.fragments.HomeViewModelFactory
 import kotlinx.coroutines.launch
@@ -36,7 +38,20 @@ class AlbumDetailFragment : Fragment() {
         )
     }
 
+    private var singleTrack: TrackItem? = null
+
     private lateinit var albumTrackAdapter: AlbumTrackAdapter
+
+    private var trackSelectedListener: OnTrackSelectedListener? = null
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnTrackSelectedListener) {
+            trackSelectedListener = context
+        } else {
+            // Nếu không, ném ra ngoại lệ để báo lỗi
+            throw RuntimeException("$context must implement OnTrackSelectedListener")
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -56,7 +71,21 @@ class AlbumDetailFragment : Fragment() {
         val accessToken = AuthTokenManager.getAccessToken(requireContext())
         val id = arguments?.getString("id") ?: ""
         val type = arguments?.getString("type") ?: ""
-        albumTrackAdapter = AlbumTrackAdapter()
+        albumTrackAdapter = AlbumTrackAdapter(
+            onItemClick = { track ->
+                val accessToken = AuthTokenManager.getAccessToken(requireContext())
+                if (accessToken != null) {
+                    // Gọi playTrack từ ViewModel
+                    viewModel.playTrack(accessToken, "spotify:track:${track.id}")
+                    // Cập nhật UI với thông tin bài hát mới
+                    viewModel.loadPlayerTrackDetails(accessToken, track.id)
+                    // Hiển thị thanh player
+                    trackSelectedListener?.onTrackSelected(track.id)
+                } else {
+                    Toast.makeText(context, "Không có access token", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
 
 
         if (accessToken == null || id.isEmpty() || type.isEmpty()) {
@@ -84,6 +113,29 @@ class AlbumDetailFragment : Fragment() {
                 viewModel.loadTrackDetails(accessToken, id)
                 binding.rcAlbumTrack.visibility = View.GONE
                 binding.oneTrackLayout.visibility = View.VISIBLE
+                binding.oneTrackLayout.setOnClickListener {
+                    val track = singleTrack
+                    if (track != null) {
+                        val accessToken = AuthTokenManager.getAccessToken(requireContext())
+                        if (accessToken != null) {
+                            // Gọi playTrack từ ViewModel
+                            viewModel.playTrack(accessToken, "spotify:track:${track.id}")
+                            // Cập nhật UI với thông tin bài hát mới
+                            viewModel.loadPlayerTrackDetails(accessToken, track.id)
+                            // Hiển thị thanh player
+                            trackSelectedListener?.onTrackSelected(track.id)
+                        } else {
+                            Toast.makeText(context, "Không có access token", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Không có thông tin bài hát để phát",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             }
 
             else -> null
@@ -108,6 +160,7 @@ class AlbumDetailFragment : Fragment() {
                     viewModel.trackDetails.collect { track ->
                         track?.let {
                             updateUIWithTrackData(it)
+                            singleTrack = it
                         }
                     }
                 }
