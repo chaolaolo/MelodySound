@@ -7,8 +7,10 @@ import com.example.melodysound.data.model.CurrentlyPlayingResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
+import com.example.melodysound.data.model.PagingTopChartTracks
 import com.example.melodysound.data.model.PagingTracks
 import com.example.melodysound.data.model.PlayRequestBody
+import com.example.melodysound.data.model.PlaylistResponse
 import com.example.melodysound.data.model.TopTracksResponse
 import com.example.melodysound.data.model.Track
 import com.example.melodysound.data.model.TrackItem
@@ -129,4 +131,20 @@ interface SpotifyApiService {
     suspend fun getCurrentlyPlayingTrack(
         @Header("Authorization") authorization: String
     ): Response<CurrentlyPlayingResponse>
+
+
+    @GET("playlists/{playlist_id}/tracks")
+    suspend fun getPlaylistTracks(
+        @Header("Authorization") authorization: String,
+        @Path("playlist_id") playlistId: String,
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0
+    ): Response<PagingTopChartTracks>
+
+    @GET("playlists/{playlist_id}")
+    suspend fun getPlaylistDetails(
+        @Header("Authorization") authorization: String,
+        @Path("playlist_id") playlistId: String
+    ): Response<PlaylistResponse>
+
 }

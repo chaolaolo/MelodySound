@@ -39,4 +39,8 @@ data class TrackItem(
     val restrictions: Restrictions?,
     @SerializedName("popularity")
     val popularity: Int,
+    @SerializedName("episode")
+    val episode: Boolean,
+    @SerializedName("track")
+    val track: Boolean,
 )

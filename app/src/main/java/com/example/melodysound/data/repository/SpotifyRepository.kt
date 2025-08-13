@@ -3,16 +3,15 @@ package com.example.melodysound.data.repository
 import android.content.Context
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.remote.RetrofitInstance
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.ArtistTopTracksResponse
 import com.example.melodysound.data.model.PagingAlbums
 import com.example.melodysound.data.model.PagingArtists
 import com.example.melodysound.data.model.PagingNewRelease
+import com.example.melodysound.data.model.PagingTopChartTracks
 import com.example.melodysound.data.model.PagingTracks
 import com.example.melodysound.data.model.PlayRequestBody
-import com.example.melodysound.data.model.TopTracksResponse
+import com.example.melodysound.data.model.PlaylistResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.remote.SpotifyApiService
 
@@ -322,6 +321,57 @@ class SpotifyRepository(
             }
         } catch (e: Exception) {
             Result.Error("Network error: ${e.message}")
+        }
+    }
+
+
+    suspend fun getPlaylistTracks(
+        accessToken: String,
+        playlistId: String,
+        limit: Int = 50,
+        offset: Int = 0
+    ): Result<PagingTopChartTracks> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getPlaylistTracks(
+                authorization = authorizationHeader,
+                playlistId = playlistId,
+                limit = limit,
+                offset = offset
+            )
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for top 50 tracks")
+            } else {
+                Result.Error("API call failed for top 50 with code: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting top 50 tracks: ${e.message}")
+        }
+    }
+
+    suspend fun getPlaylistDetails(
+        accessToken: String,
+        playlistId: String
+    ): Result<PlaylistResponse> {
+        return try {
+            val authorizationHeader = "Bearer $accessToken"
+            val response = apiService.getPlaylistDetails(
+                authorization = authorizationHeader,
+                playlistId = playlistId
+            )
+
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: Result.Error("Empty response body for playlist details")
+            } else {
+                Result.Error("API call failed for playlist details with code: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("An error occurred while getting playlist details: ${e.message}")
         }
     }
 

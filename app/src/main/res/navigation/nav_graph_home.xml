@@ -47,4 +47,13 @@
             android:name="artist_id"
             android:defaultValue="" />
     </fragment>
+    <fragment
+        android:id="@+id/top50Fragment"
+        android:name="com.example.melodysound.ui.home.fragments.home.Top50Fragment"
+        android:label="Top 50"
+        tools:layout="@layout/fragment_top50">
+        <argument
+            android:name="top_chart_id"
+            android:defaultValue="" />
+    </fragment>
 </navigation>

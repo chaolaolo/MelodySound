@@ -108,8 +108,8 @@ class MusicFragment : Fragment() {
 
 
         val charts = listOf(
-            Chart("ch1", "Top 50 Hits Việt Nam", R.drawable.img_50_hits_vietnam),
-            Chart("ch2", "Top 100 Hits Thế giới", R.drawable.img_50_hits_thegioi),
+            Chart("616iSon5fJRnCwYbAJZ9kE", " Top 100 Việt Nam","Top 100 Hits Việt Nam", R.drawable.top100vn),
+            Chart("0sDahzOkMWOmLXfTMf2N4N", "Top 100 thế giới","Top 100 Hits Thế giới", R.drawable.top100tg),
         )
 
         binding.newReleasesRecyclerView.apply {
@@ -138,6 +138,13 @@ class MusicFragment : Fragment() {
         binding.chartsRecyclerView.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = ChartAdapter(charts, onItemClick = { chart ->
+                val bundle = Bundle().apply {
+                    putString("id", chart.id)
+                }
+
+                // Lấy NavController từ parent fragment (HomeFragment)
+                val navController = parentFragment?.findNavController()
+                navController?.navigate(R.id.top50Fragment, bundle)
                 Toast.makeText(
                     context,
                     "Clicked on Chart: ${chart.description}",

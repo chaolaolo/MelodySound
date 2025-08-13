@@ -3,17 +3,15 @@ package com.example.melodysound.ui.home
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.repository.SpotifyRepository
 import com.example.melodysound.data.repository.Result
 import com.example.melodysound.data.model.AlbumItem
 import com.example.melodysound.data.model.Artist
-import com.example.melodysound.data.model.Track
+import com.example.melodysound.data.model.PlaylistResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.ui.common.AuthTokenManager
-import dagger.hilt.android.internal.Contexts.getApplication
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +43,11 @@ class HomeViewModel(
     val currentTrack: StateFlow<TrackItem?> = _currentTrack.asStateFlow()
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _top50Tracks = MutableStateFlow<List<TrackItem>>(emptyList())
+    val top50Tracks: StateFlow<List<TrackItem>> = _top50Tracks.asStateFlow()
+    private val _top50Playlist = MutableStateFlow<PlaylistResponse?>(null)
+    val top50Playlist: StateFlow<PlaylistResponse?> = _top50Playlist.asStateFlow()
 
     private val _artistDetailsForAlbum = MutableStateFlow<Artist?>(null)
     val artistDetailsForAlbum: StateFlow<Artist?> = _artistDetailsForAlbum.asStateFlow()
@@ -367,5 +370,44 @@ class HomeViewModel(
         }
     }
 
+
+    fun loadTop50Tracks(accessToken: String, playlistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _top50Tracks.value = emptyList()
+
+            when (val result = repository.getPlaylistTracks(accessToken, playlistId)) {
+                is Result.Success -> {
+                    _top50Tracks.value = result.data.items
+                        .mapNotNull { it.track } // Lấy ra đối tượng `track` từ mỗi item, nếu nó không null
+                        .filter { it.name != null && it.id != null } // Lọc tiếp các track rỗng
+                }
+                is Result.Error -> {
+                    _errorMessage.value = result.message
+                    Log.e("HomeViewModel", "Failed to load top 50 tracks: ${result.message}")
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+    fun loadTop50PlaylistDetails(accessToken: String, playlistId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _top50Playlist.value = null
+
+            when (val result = repository.getPlaylistDetails(accessToken, playlistId)) {
+                is Result.Success -> {
+                    _top50Playlist.value = result.data
+                }
+                is Result.Error -> {
+                    _errorMessage.value = result.message
+                    Log.e("HomeViewModel", "Failed to load playlist details: ${result.message}")
+                }
+            }
+            _isLoading.value = false
+        }
+    }
 
 }
