@@ -130,10 +130,6 @@
                     android:src="@drawable/outline_more_vert"
                     app:tint="@color/white" />
 
-                <View
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1" />
 
                 <ImageView
                     android:id="@+id/btn_shuffle"
@@ -141,15 +137,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="10dp"
                     android:src="@drawable/outline_shuffle"
-                    app:tint="#FFCDD2" />
-
-                <ImageView
-                    android:id="@+id/btn_play_all"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="10dp"
-                    android:src="@drawable/outline_play_circle"
-                    app:tint="#FFCDD2" />
+                    app:tint="@color/white" />
 
             </LinearLayout>
 

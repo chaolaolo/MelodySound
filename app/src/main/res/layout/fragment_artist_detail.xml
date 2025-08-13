@@ -67,7 +67,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -89,6 +89,11 @@
                         android:textColor="@android:color/darker_gray" />
                 </LinearLayout>
 
+                <View
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -106,28 +111,28 @@
                         android:textSize="10sp"
                         app:backgroundTint="@null" />
 
-                    <View
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1" />
+                    <!--                    <View-->
+                    <!--                        android:layout_width="wrap_content"-->
+                    <!--                        android:layout_height="wrap_content"-->
+                    <!--                        android:layout_weight="1" />-->
 
-                    <ImageButton
-                        android:id="@+id/btn_shuffle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:background="@color/transparent"
-                        android:src="@drawable/outline_shuffle"
-                        app:tint="@color/white" />
+                    <!--                    <ImageButton-->
+                    <!--                        android:id="@+id/btn_shuffle"-->
+                    <!--                        android:layout_width="wrap_content"-->
+                    <!--                        android:layout_height="wrap_content"-->
+                    <!--                        android:layout_marginLeft="10dp"-->
+                    <!--                        android:background="@color/transparent"-->
+                    <!--                        android:src="@drawable/outline_shuffle"-->
+                    <!--                        app:tint="@color/white" />-->
 
-                    <ImageButton
-                        android:id="@+id/btn_play_all"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:background="@color/transparent"
-                        android:src="@drawable/outline_play_circle"
-                        app:tint="@color/white" />
+                    <!--                    <ImageButton-->
+                    <!--                        android:id="@+id/btn_play_all"-->
+                    <!--                        android:layout_width="wrap_content"-->
+                    <!--                        android:layout_height="wrap_content"-->
+                    <!--                        android:layout_marginLeft="10dp"-->
+                    <!--                        android:background="@color/transparent"-->
+                    <!--                        android:src="@drawable/outline_play_circle"-->
+                    <!--                        app:tint="@color/white" />-->
                 </LinearLayout>
 
             </LinearLayout>

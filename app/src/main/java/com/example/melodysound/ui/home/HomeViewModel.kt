@@ -284,22 +284,6 @@ class HomeViewModel(
         }
     }
 
-    fun playPlaylist(accessToken: String, playlistUri: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            when (val result = repository.playPlaylist(accessToken, playlistUri)) {
-                is Result.Success -> {
-                    _isPlaying.value = true
-                    _errorMessage.value = null
-                }
-                is Result.Error -> {
-                    _errorMessage.value = "Failed to play playlist: ${result.message}"
-                }
-            }
-            _isLoading.value = false
-        }
-    }
-
     fun resumePlayback(accessToken: String) {
         viewModelScope.launch {
             _isLoading.value = true
