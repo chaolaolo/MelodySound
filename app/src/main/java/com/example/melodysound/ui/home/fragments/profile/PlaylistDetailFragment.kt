@@ -1,4 +1,4 @@
-package com.example.melodysound.ui.home.fragments.home
+package com.example.melodysound.ui.home.fragments.profile
 
 import android.content.Context
 import android.os.Bundle
@@ -18,11 +18,13 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.melodysound.R
+import com.example.melodysound.data.model.AlbumFull
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.Chart
 import com.example.melodysound.data.model.PlaylistResponse
+import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.data.repository.SpotifyRepository
-import com.example.melodysound.databinding.FragmentTop50Binding
+import com.example.melodysound.databinding.FragmentPlaylistDetailBinding
 import com.example.melodysound.ui.common.AuthTokenManager
 import com.example.melodysound.ui.home.HomeViewModel
 import com.example.melodysound.ui.home.OnTrackSelectedListener
@@ -34,11 +36,12 @@ import com.example.melodysound.ui.home.fragments.HomeViewModelFactory
 import com.google.android.material.appbar.AppBarLayout
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
+import java.util.concurrent.TimeUnit
 import kotlin.getValue
 
-class Top50Fragment : Fragment() {
+class PlaylistDetailFragment : Fragment() {
 
-    private var _binding: FragmentTop50Binding? = null
+    private var _binding: FragmentPlaylistDetailBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: HomeViewModel by viewModels {
@@ -65,7 +68,7 @@ class Top50Fragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        _binding = FragmentTop50Binding.inflate(inflater, container, false)
+        _binding = FragmentPlaylistDetailBinding.inflate(inflater, container, false)
         return binding.root
     }
 
@@ -85,7 +88,7 @@ class Top50Fragment : Fragment() {
         binding.appBarLayout.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { appBarLayout, verticalOffset ->
             val isCollapsed = Math.abs(verticalOffset) >= appBarLayout.totalScrollRange
 //            binding.collapsingToolbar.title = if (isCollapsed) binding.txtTitle.text else ""
-            binding.imgTopChart.visibility = if (isCollapsed) View.GONE else View.VISIBLE
+            binding.imgPlaylistThumbnail.visibility = if (isCollapsed) View.GONE else View.VISIBLE
         })
 
         val id = arguments?.getString("id") ?: ""
@@ -93,6 +96,7 @@ class Top50Fragment : Fragment() {
 
 
         if (accessToken != null && id.isNotEmpty()) {
+            viewModel.loadCurrentUser(accessToken)
             viewModel.loadTop50PlaylistDetails(accessToken, id)
             viewModel.loadTop50Tracks(accessToken, id)
         } else {
@@ -121,16 +125,16 @@ class Top50Fragment : Fragment() {
                         .load(imageUrl)
                         .placeholder(R.drawable.logo)
                         .error(R.drawable.logo)
-                        .into(binding.imgMiniTopChartThumbnail)
+                        .into(binding.imgMiniPlaylistThumbnail)
                 } else {
-                    binding.imgMiniTopChartThumbnail.setImageResource(R.drawable.logo)
+                    binding.imgMiniPlaylistThumbnail.setImageResource(R.drawable.logo)
                 }
             } else {
                 Toast.makeText(context, "Không có access token", Toast.LENGTH_SHORT).show()
             }
         })
 
-        binding.rcTop50.apply {
+        binding.rcPlaylistTracks.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = top50Adapter
             isNestedScrollingEnabled = false // Vô hiệu hóa cuộn lồng nhau
@@ -142,9 +146,20 @@ class Top50Fragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.top50Playlist.collect { playlist ->
-                        playlist?.let {
-                            updatePlaylistUI(it)
+                    viewModel.currentUser.collect { user ->
+                        user?.let {
+                            binding.txtUserName.text = user.displayName
+                            // Load ảnh đại diện
+                            val imageUrl = user.images.firstOrNull()?.url
+                            if (imageUrl != null) {
+                                Glide.with(this@PlaylistDetailFragment)
+                                    .load(imageUrl)
+                                    .placeholder(R.drawable.logo) // Ảnh placeholder khi đang load
+                                    .error(R.drawable.logo) // Ảnh khi load lỗi
+                                    .into(binding.imgUserAvatar)
+                            } else {
+                                binding.imgUserAvatar.setImageResource(R.drawable.logo)
+                            }
                         }
                     }
                 }
@@ -152,8 +167,32 @@ class Top50Fragment : Fragment() {
                     viewModel.top50Tracks.collect { tracks ->
                         if (tracks.isNotEmpty()) {
                             top50Adapter.submitList(tracks)
+                            binding.txtTotalTime.text = calculateTotalDuration(tracks)
+
                         } else {
                             Log.d("Top50Fragment", "No tracks received or list is empty.")
+                        }
+                    }
+                }
+                launch {
+                    viewModel.top50Playlist.collect { playlist ->
+                        binding.txtPlaylistName.text = playlist?.name ?: ""
+
+                        val imageUrl = playlist?.images?.firstOrNull()?.url
+                        if (imageUrl != null) {
+                            Glide.with(this@PlaylistDetailFragment)
+                                .load(imageUrl)
+                                .placeholder(R.drawable.logo)
+                                .error(R.drawable.logo)
+                                .into(binding.imgPlaylistThumbnail)
+                            Glide.with(this@PlaylistDetailFragment)
+                                .load(imageUrl)
+                                .placeholder(R.drawable.logo)
+                                .error(R.drawable.logo)
+                                .into(binding.imgMiniPlaylistThumbnail)
+                        } else {
+                            binding.imgPlaylistThumbnail.setImageResource(R.drawable.logo)
+                            binding.imgMiniPlaylistThumbnail.setImageResource(R.drawable.logo)
                         }
                     }
                 }
@@ -175,22 +214,19 @@ class Top50Fragment : Fragment() {
         }
     }
 
-    private fun updatePlaylistUI(playlist: PlaylistResponse) {
-        binding.collapsingToolbar.title = playlist.name
-        binding.txtDescriptionChart.text = playlist.description ?: "Bảng xếp hạng hàng đầu"
-        val imageUrl = playlist.images.firstOrNull()?.url
-        if (imageUrl != null) {
-            Glide.with(this)
-                .load(imageUrl)
-                .into(binding.imgTopChart)
-            Glide.with(this)
-                .load(imageUrl)
-                .into(binding.imgMiniTopChartThumbnail)
+    private fun calculateTotalDuration(tracks: List<TrackItem>): String {
+        val totalMillis = tracks.sumOf { it.durationMs }
+        val totalSeconds = TimeUnit.MILLISECONDS.toSeconds(totalMillis.toLong())
+        val hours = TimeUnit.SECONDS.toHours(totalSeconds)
+        val minutes = TimeUnit.SECONDS.toMinutes(totalSeconds) % 60
+        val seconds = totalSeconds % 60
+        return if (hours > 0) {
+            "${hours} giờ ${minutes} phút"
+        } else if (minutes > 0) {
+            "${minutes} phút ${seconds} giây"
         } else {
-            binding.imgTopChart.setImageResource(R.drawable.top100vn)
-            binding.imgMiniTopChartThumbnail.setImageResource(R.drawable.top100vn)
+            "${seconds} giây"
         }
-        binding.txtTopChartReleaseTime.text = "Cập nhật hàng ngày"
     }
 
     override fun onDestroyView() {

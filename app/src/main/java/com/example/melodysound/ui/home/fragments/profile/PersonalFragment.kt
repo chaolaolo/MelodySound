@@ -12,6 +12,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.melodysound.R
@@ -52,6 +53,16 @@ class PersonalFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerViews()
+        observeViewModel()
+
+        binding.btnSeeAllPlaylists.setOnClickListener {
+            val navController = parentFragment?.findNavController()
+            navController?.navigate(R.id.allPlaylistsFragment)
+        }
+        binding.btnSeeAllFollowings.setOnClickListener {
+            val navController = parentFragment?.findNavController()
+            navController?.navigate(R.id.allFollowingFragment)
+        }
 
         val accessToken = AuthTokenManager.getAccessToken(requireContext())
         if (accessToken != null) {
@@ -81,22 +92,33 @@ class PersonalFragment : Fragment() {
             Toast.makeText(requireContext(), "Bạn chưa đăng nhập!", Toast.LENGTH_SHORT).show()
         }
 
-        observeViewModel()
 
     }
 
     private fun setupRecyclerViews() {
         followingArtistsAdapter = ProfileAdapter(
             onItemClick = { artist ->
-                Toast.makeText(requireContext(), "clicked ${artist.name}", Toast.LENGTH_SHORT)
-                    .show()
+                val bundle = Bundle().apply {
+                    putString("id", artist.id)
+                }
+                val navController = parentFragment?.findNavController()
+                navController?.navigate(R.id.artistDetailFragment, bundle)
             }
         )
         binding.rcFollowing.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = followingArtistsAdapter
         }
-        playlistsAdapter = PlaylistsAdapter()
+
+        playlistsAdapter = PlaylistsAdapter(
+            onItemClick = { playlist ->
+                val bundle = Bundle().apply {
+                    putString("id", playlist.id)
+                }
+                val navController = parentFragment?.findNavController()
+                navController?.navigate(R.id.playlistDetailFragment, bundle)
+            }
+        )
         binding.rcMyPlaylist.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
             adapter = playlistsAdapter

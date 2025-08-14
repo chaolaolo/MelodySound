@@ -7,11 +7,12 @@ import com.bumptech.glide.Glide
 import com.example.melodysound.R
 import com.example.melodysound.data.model.Artist
 import com.example.melodysound.data.model.TrackItem
+import com.example.melodysound.databinding.ItemAllArtistBinding
 import com.example.melodysound.databinding.ItemArtistBinding
 
-class ProfileAdapter(
+class AllFollowingAdapter(
     private val onItemClick: (Artist) -> Unit
-) : RecyclerView.Adapter<ProfileAdapter.ArtistViewHolder>() {
+) : RecyclerView.Adapter<AllFollowingAdapter.ArtistViewHolder>() {
 
     private var artists: List<Artist> = emptyList()
 
@@ -21,7 +22,7 @@ class ProfileAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArtistViewHolder {
-        val binding = ItemArtistBinding.inflate(
+        val binding = ItemAllArtistBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
@@ -36,7 +37,7 @@ class ProfileAdapter(
 
     override fun getItemCount(): Int = artists.size
 
-    inner class ArtistViewHolder(private val binding: ItemArtistBinding) :
+    inner class ArtistViewHolder(private val binding: ItemAllArtistBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(artist: Artist) {

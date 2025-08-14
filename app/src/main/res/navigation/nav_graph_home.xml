@@ -56,4 +56,27 @@
             android:name="top_chart_id"
             android:defaultValue="" />
     </fragment>
+
+    <fragment
+        android:id="@+id/allFollowingFragment"
+        android:name="com.example.melodysound.ui.home.fragments.profile.AllFollowingFragment"
+        android:label="AllFollowing"
+        tools:layout="@layout/fragment_all_following" />
+
+    <fragment
+        android:id="@+id/allPlaylistsFragment"
+        android:name="com.example.melodysound.ui.home.fragments.profile.AllPlaylistsFragment"
+        android:label="AllFollowing"
+        tools:layout="@layout/fragment_all_playlists" />
+
+    <fragment
+        android:id="@+id/playlistDetailFragment"
+        android:name="com.example.melodysound.ui.home.fragments.profile.PlaylistDetailFragment"
+        android:label="PlaylistDetailFragment"
+        tools:layout="@layout/fragment_playlist_detail">
+        <argument
+            android:name="top_chart_id"
+            android:defaultValue="" />
+    </fragment>
+
 </navigation>
