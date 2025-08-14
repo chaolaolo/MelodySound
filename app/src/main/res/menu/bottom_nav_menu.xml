@@ -12,10 +12,10 @@
         android:icon="@drawable/outline_search"
         android:title="Tìm kiếm" />
 
-    <item
-        android:id="@+id/libraryFragment"
-        android:icon="@drawable/outline_library_music"
-        android:title="Thư viện" />
+<!--    <item-->
+<!--        android:id="@+id/libraryFragment"-->
+<!--        android:icon="@drawable/outline_library_music"-->
+<!--        android:title="Thư viện" />-->
 
 
     <item
