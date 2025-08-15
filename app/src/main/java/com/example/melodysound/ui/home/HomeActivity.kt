@@ -9,25 +9,14 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import com.bumptech.glide.Glide
 import com.example.melodysound.R
 import com.example.melodysound.data.repository.SpotifyRepository
 import com.example.melodysound.databinding.ActivityHomeBinding
-import com.example.melodysound.databinding.PlayerBarLayoutBinding
 import com.example.melodysound.ui.common.AuthTokenManager
 import com.example.melodysound.ui.home.fragments.HomeViewModelFactory
 import com.example.melodysound.ui.home.fragments.PlayerBarFragment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
 
 
 interface OnTrackSelectedListener {
@@ -40,8 +29,6 @@ class HomeActivity : AppCompatActivity(), OnTrackSelectedListener {
     private val viewModel: HomeViewModel by viewModels {
         HomeViewModelFactory(application, SpotifyRepository(this))
     }
-
-    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +44,29 @@ class HomeActivity : AppCompatActivity(), OnTrackSelectedListener {
 
 //        setupPlayerBarObserver()
         setupNavigation()
+        binding.navView.visibility = View.VISIBLE
+        supportFragmentManager.addOnBackStackChangedListener {
+            val backStackEntryCount = supportFragmentManager.backStackEntryCount
+            if (backStackEntryCount == 0) {
+                binding.navView.visibility = View.VISIBLE
+            }
+        }
+
+        binding.playerBarContainer.setOnClickListener {
+            val transaction = supportFragmentManager.beginTransaction()
+            transaction.setCustomAnimations(
+                R.anim.slide_in_up, // animation khi mở
+                R.anim.slide_out_down, // animation khi đóng
+                R.anim.slide_in_up, // animation khi popBackStack
+                R.anim.slide_out_down // animation khi popBackStack
+            )
+            val fullScreenPlayerFragment = FullScreenPlayerFragment(viewModel)
+            transaction.replace(R.id.main, fullScreenPlayerFragment)
+
+            transaction.addToBackStack(null)
+            transaction.commit()
+            binding.navView.visibility = View.GONE
+        }
 
         val accessToken = AuthTokenManager.getAccessToken(this)
         val refreshToken = AuthTokenManager.getRefreshToken(this)

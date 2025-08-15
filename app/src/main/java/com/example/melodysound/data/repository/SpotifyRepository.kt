@@ -430,6 +430,22 @@ class SpotifyRepository(
         }
     }
 
+    suspend fun seekToPosition(accessToken: String, positionMs: Int): Result<Unit> {
+        return try {
+            val response = apiService.seekToPosition(
+                authorization = "Bearer $accessToken",
+                position_ms = positionMs
+            )
+            if (response.isSuccessful) {
+                Result.Success(Unit)
+            } else {
+                Result.Error("API error: ${response.code()} - ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            Result.Error("Network error: ${e.message}")
+        }
+    }
+
 
 }
 

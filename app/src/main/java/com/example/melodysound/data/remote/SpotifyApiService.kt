@@ -168,4 +168,10 @@ interface SpotifyApiService {
         @Header("Authorization") authorization: String,
         @Query("limit") limit: Int = 20
     ): Response<PagingPlaylistsResponse>
+
+    @PUT("me/player/seek")
+    suspend fun seekToPosition(
+        @Header("Authorization") authorization: String,
+        @Query("position_ms") position_ms: Int
+    ): Response<Unit>
 }

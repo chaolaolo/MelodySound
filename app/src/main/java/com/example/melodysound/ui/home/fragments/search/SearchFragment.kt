@@ -24,10 +24,10 @@ class SearchFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.edtSearch.setOnClickListener {
-            val searchDialog = FullScreenSearchDialogFragment()
-            searchDialog.show(parentFragmentManager, "FullScreenSearchDialog")
-        }
+//        binding.edtSearch.setOnClickListener {
+//            val searchDialog = FullScreenSearchDialogFragment()
+//            searchDialog.show(parentFragmentManager, "FullScreenSearchDialog")
+//        }
     }
     override fun onDestroyView() {
         super.onDestroyView()

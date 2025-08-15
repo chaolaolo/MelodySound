@@ -14,6 +14,7 @@ import com.example.melodysound.data.model.FollowingArtistsResponse
 import com.example.melodysound.data.model.PlaylistResponse
 import com.example.melodysound.data.model.TrackItem
 import com.example.melodysound.ui.common.AuthTokenManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,15 @@ class HomeViewModel(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    // Thêm các biến mới cho seekbar
+    private val _currentPosition = MutableStateFlow(0)
+    val currentPosition: StateFlow<Int> = _currentPosition.asStateFlow()
+    private val _isSeeking = MutableStateFlow(false)
+
+    // Job để quản lý coroutine cập nhật seekbar
+    private var progressUpdateJob: Job? = null
+    private var currentTrackId: String? = null
+
     private val _top50Tracks = MutableStateFlow<List<TrackItem>>(emptyList())
     val top50Tracks: StateFlow<List<TrackItem>> = _top50Tracks.asStateFlow()
     private val _top50Playlist = MutableStateFlow<PlaylistResponse?>(null)
@@ -68,6 +78,46 @@ class HomeViewModel(
     // Trạng thái lỗi
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    init {
+        // Khởi động coroutine cập nhật vị trí ngay khi ViewModel được tạo
+        startProgressUpdate()
+    }
+
+    private fun startProgressUpdate() {
+        progressUpdateJob?.cancel()
+        progressUpdateJob = viewModelScope.launch {
+            while (true) {
+                if (_isPlaying.value && !_isSeeking.value) {
+                    _currentPosition.value += 1000
+                }
+                delay(1000)
+            }
+        }
+    }
+
+    // Phương thức để cập nhật vị trí phát khi người dùng kéo seekbar
+    fun seekToPosition(position: Int) {
+        val accessToken = AuthTokenManager.getAccessToken(getApplication()) ?: return
+        viewModelScope.launch {
+            // Cập nhật vị trí trong ViewModel trước khi gửi lệnh tới API
+            _currentPosition.value = position
+            when (repository.seekToPosition(accessToken, position)) {
+                is Result.Success -> {
+                    Log.d("HomeViewModel", "Seek to position $position successful.")
+                }
+
+                is Result.Error -> {
+//                    _errorMessage.value = "Failed to seek to position: ${message}"
+                }
+            }
+        }
+    }
+
+    // Cập nhật trạng thái seeking khi người dùng bắt đầu/dừng kéo
+    fun setSeeking(isSeeking: Boolean) {
+        _isSeeking.value = isSeeking
+    }
 
     //    loadNewReleases
     fun loadNewReleases(accessToken: String) {
@@ -285,6 +335,7 @@ class HomeViewModel(
                 is Result.Success -> {
                     _isPlaying.value = true
                     _errorMessage.value = null
+                    updateCurrentlyPlayingTrack(accessToken)
                 }
 
                 is Result.Error -> {
@@ -331,13 +382,20 @@ class HomeViewModel(
 
     fun updateCurrentlyPlayingTrack(accessToken: String) {
         viewModelScope.launch {
-            // Đợi một chút để Spotify có thời gian xử lý lệnh skip
-            delay(1000) // Đợi 1 giây
+            delay(200) // Đợi 1 giây
 
             when (val result = repository.getCurrentlyPlayingTrack(accessToken)) {
                 is Result.Success -> {
-                    _currentTrack.value = result.data
-                    _isPlaying.value = true // Giả định khi có bài hát, nó đang phát
+                    val newTrack = result.data
+                    _currentTrack.value = newTrack
+                    if (newTrack.id != currentTrackId) {
+                        _currentPosition.value = 0
+                        currentTrackId = newTrack.id
+                    } else {
+                        _currentPosition.value = newTrack.durationMs ?: 0
+                    }
+
+                    _isPlaying.value = true
                 }
 
                 is Result.Error -> {
@@ -454,6 +512,7 @@ class HomeViewModel(
                 is Result.Success -> {
                     _followingArtists.value = result.data
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = "Failed to load following artists: ${result.message}"
                     Log.e(
@@ -475,6 +534,7 @@ class HomeViewModel(
                 is Result.Success -> {
                     _userPlaylists.value = result.data.items
                 }
+
                 is Result.Error -> {
                     _errorMessage.value = "Failed to load user playlists: ${result.message}"
                 }

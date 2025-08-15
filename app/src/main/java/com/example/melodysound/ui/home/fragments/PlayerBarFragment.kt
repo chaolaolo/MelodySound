@@ -1,9 +1,12 @@
 package com.example.melodysound.ui.home.fragments
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -27,6 +30,21 @@ class PlayerBarFragment : Fragment() {
         HomeViewModelFactory(requireActivity().application, SpotifyRepository(requireContext()))
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+    private val updateSeekBarTask = object : Runnable {
+        override fun run() {
+            // Get the current position and duration from the ViewModel
+            val currentPosition = viewModel.currentPosition.value ?: 0
+            val duration = viewModel.currentTrack.value?.durationMs ?: 0
+
+            // Update the seekbar
+            binding.seekbarProgress.max = duration
+            binding.seekbarProgress.progress = currentPosition
+            // Schedule the next update
+            handler.postDelayed(this, 1000) // Update every second
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -44,6 +62,18 @@ class PlayerBarFragment : Fragment() {
         binding.btnPlayPause.setOnClickListener { togglePlayback() }
         binding.btnNext.setOnClickListener { skipToNext() }
         binding.btnPrevious.setOnClickListener { skipToPrevious() }
+
+        binding.seekbarProgress.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    viewModel.seekToPosition(progress)
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 
     private fun setupObservers() {
@@ -51,6 +81,7 @@ class PlayerBarFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.currentTrack.collect { track ->
                 updatePlayerUI(track)
+                handler.post(updateSeekBarTask)
             }
         }
 
