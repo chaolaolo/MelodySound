@@ -58,8 +58,8 @@ class PodcastsAdapter(
                 // Tải ảnh bìa podcast bằng Glide
                 Glide.with(imgThumbnail.context)
                     .load(podcast.thumbnailUrl)
-                    .placeholder(R.drawable.ic_launcher_background) // Thay bằng drawable placeholder của bạn
-                    .error(R.drawable.ic_launcher_foreground) // Thay bằng drawable lỗi của bạn
+                    .placeholder(R.drawable.logo) // Thay bằng drawable placeholder của bạn
+                    .error(R.drawable.logo) // Thay bằng drawable lỗi của bạn
                     .into(imgThumbnail)
 
                 // Cập nhật biểu tượng Play/Pause
